@@ -90,10 +90,17 @@ Put replication configuration into dedicated file
 include_if_exists = 'replication.conf'
 ```
 
-# Mount data disks
+# Attach and mount data disks
 
+- Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-
+raid/)  
 - One data disk for pg_xlog
-- Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-raid/)  
+
+```
+azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-datastripe-1.vhd
+azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-datastripe-2.vhd
+azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-datastripe-xlog.vhd
+```
 
 - Use 'cfdisk' on /dev/sdc and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
 - Use 'cfdisk' on /dev/sdd and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
@@ -115,6 +122,16 @@ vgcreate data /dev/md0
 # create logical volume 
 lvcreate -n pgdata -l100%FREE data
 
+# show volume group information
+vgdisplay
+
+# Now 
+ls -als /dev/data/pgdata
+
+aptitude install xfsprogs
+
+# mkfs -t xfs /dev/data/pgdata
+mkfs.xfs /dev/data/pgdata
 ```
 
 
