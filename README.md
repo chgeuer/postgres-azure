@@ -103,6 +103,18 @@ include_if_exists = 'replication.conf'
 aptitude install mdadm
 
 mdadm --create /dev/md0 --level 0 --raid-devices 2 /dev/sdc1 /dev/sdd1
+
+aptitude install lvm2
+
+# create physical volume
+pvcreate /dev/md0
+
+# create volume group
+vgcreate data /dev/md0
+
+# create logical volume 
+lvcreate -n pgdata -l100%FREE data
+
 ```
 
 
