@@ -46,9 +46,12 @@ aptitude install wget ca-certificates
 
 wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
 
+
 aptitude update && aptitude upgrade
 
 aptitude install postgresql-9.3
+
+aptitude install mdadm
 ```
 
 ## Edit /etc/postgresql/9.3/main/postgresql.conf
@@ -95,6 +98,14 @@ include_if_exists = 'replication.conf'
 - Use 'cfdisk' on /dev/sdc and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
 - Use 'cfdisk' on /dev/sdd and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
 - Use 'cfdisk' on /dev/sde and create a primary partition of tyoe '8E' (LVM) for pg_xlog
+
+```
+aptitude install mdadm
+
+mdadm --create /dev/md0 --level 0 --raid-devices 2 /dev/sdc1 /dev/sdd1
+```
+
+
 
 
 ## See what's happening 
