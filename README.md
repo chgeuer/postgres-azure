@@ -92,8 +92,16 @@ include_if_exists = 'replication.conf'
 - One data disk for pg_xlog
 - Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-raid/)  
 
-- Use 'cfdisk' on /dev/sdc and create a primary partition of tyoe 'FD' (RAID autodetect)
+- Use 'cfdisk' on /dev/sdc and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
+- Use 'cfdisk' on /dev/sdd and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
+- Use 'cfdisk' on /dev/sde and create a primary partition of tyoe '8E' (LVM) for pg_xlog
 
+
+## See what's happening 
+
+```
+watch dmesg  \| tail -5
+```
 
 
 
