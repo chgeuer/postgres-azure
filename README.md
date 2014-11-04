@@ -73,3 +73,18 @@ work_mem = 256MB
 maintenance_work_mem = 512MB
 ```
 
+The write-ahead-log needs to be merged at regular checkpoints into the tables. 
+
+```
+checkpoint_segments = 64                # was 3 previously in logfile segments, min 1, 16MB each
+checkpoint_timeout = 1min               # range 30s-1h
+checkpoint_completion_target = 0.8      # checkpoint target duration, 0.0 - 1.0
+```
+
+
+
+
+# Questions:
+
+For the block device driver for Azure Linux IaaS, what's supported or optimal? open_datasync, fdatasync (default on Linux), fsync, fsync_writethrough, open_sync. This is relevant to configure wal_sync_method
+
