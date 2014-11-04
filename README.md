@@ -23,6 +23,8 @@ Debian Wheezy Image from https://vmdepot.msopentech.com/Vhd/Show?vhdId=65&versio
 azure vm list --json
 azure vm create DNS_PREFIX --community vmdepot-65-6-32 --virtual-network-name   -l "West Europe" USER_NAME [PASSWORD] [--ssh] [other_options]
 
+
+Create an A5 instance
 ```
 
 # PostgreSQL
@@ -33,7 +35,7 @@ azure vm create DNS_PREFIX --community vmdepot-65-6-32 --virtual-network-name   
 aptitude update
 ```
 
-## Register postgreSQL 
+## Install PostgreSQL 
 
 Install PostgreSQL, as documented under https://wiki.postgresql.org/wiki/Apt 
 
@@ -46,6 +48,20 @@ wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-
 
 aptitude update && aptitude upgrade
 
-aptitude install postgresql-9.3 pgadmin3
+aptitude install postgresql-9.3
+```
+
+## Edit postgresql.conf
+
+Uncomment listen_addresses
+
+```
+listen_addresses = '*'
+```
+
+Switch off SSL
+
+```
+ssl = false
 ```
 
