@@ -73,13 +73,27 @@ work_mem = 256MB
 maintenance_work_mem = 512MB
 ```
 
-The write-ahead-log needs to be merged at regular checkpoints into the tables. 
+The write-ahead-log needs to be merged at regular checkpoints into the tables:
 
 ```
 checkpoint_segments = 64                # was 3 previously in logfile segments, min 1, 16MB each
 checkpoint_timeout = 1min               # range 30s-1h
 checkpoint_completion_target = 0.8      # checkpoint target duration, 0.0 - 1.0
 ```
+
+Put replication configuration into dedicated file
+
+```
+include_if_exists = 'replication.conf'
+```
+
+# Mount data disks
+
+- One data disk for pg_xlog
+- Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-raid/)  
+
+- Use 'cfdisk' on /dev/sdc and create an 'FD' (RAID autodetect) disk
+
 
 
 
