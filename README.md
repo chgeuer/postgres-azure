@@ -51,9 +51,9 @@ aptitude update && aptitude upgrade
 aptitude install postgresql-9.3
 ```
 
-## Edit postgresql.conf
+## Edit /etc/postgresql/9.3/main/postgresql.conf
 
-Uncomment listen_addresses
+Uncomment listen_addresses (Database only reachable through jump host)
 
 ```
 listen_addresses = '*'
@@ -63,5 +63,13 @@ Switch off SSL
 
 ```
 ssl = false
+```
+
+Rule of thumb for shared buffers: 25% of RAM should be shared buffers, on an A5 
+
+```
+shared_buffers = 4GB
+work_mem = 256MB
+maintenance_work_mem = 512MB
 ```
 
