@@ -217,4 +217,12 @@ azure vm create-from cloudservicename v.json --connect --verbose --json
 
 ```
 createuser application_admin
+
+# -O owner
+createdb -O application_admin my_database
+
+# -s n scaling factor
+# -i initialization
+# -U username
+pgbench -s 10 -i -U application_admin my_database
 ```
