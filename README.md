@@ -130,6 +130,25 @@ Allows slaves to already answer to read queries.
 hot_standby=on
 ```
 
+# Add postgres user with replication priviledge
+
+```
+# username repl 
+# -P = get password from <stdin>
+
+$ su postgres
+$ createuser --replication repl -P 
+```
+
+# pg_hba.conf
+
+Add the following line to allow subnet to do replication
+
+```
+host replication repl 10.10.0.0/16 md5
+```
+
+
 
 
 
