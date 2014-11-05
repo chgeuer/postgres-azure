@@ -315,6 +315,8 @@ $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose master register
 ```console
 $ sudo postgres    / su - postgres
 
+$ service postgresql stop
+
 # -d database
 # -U user
 # -R rsync user
@@ -459,6 +461,40 @@ All nodes (master and slaves) know each other. When calling `repmgr standby foll
 $ sudo postgres    / su - postgres
 $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby follow
 ```
+
+## Turn old master into new slave (`repmgr standby clone`)
+
+1. Stop PostgreSQL
+2. Enable `all/all` in `pg_hba.conf` again
+3. Clone from new master (`repmgr standby clone`)
+4. Start PostgreSQL 
+5. Hook up to synchronisation (`repmgr standby register`)
+
+Make a `repmgr standby clone` against a previous slave, who became master
+
+```console
+$ sudo postgres    / su - postgres
+
+$ vim /etc/postgresql/9.3/main/pg_hba.conf
+
+$ service postgresql stop
+
+$ repmgr -d repmgr \
+	-U repl \
+	-R postgres -w 500 \
+	-D /var/lib/postgres/9.3/main \
+	-f /var/lib/postgresql/repmgr.conf \
+	--verbose \
+	standby clone 10.10.0.5
+
+$ service postgresql start
+
+$ repmgr -f /var/lib/postgresql/repmgr.conf \
+	--verbose standby register
+```
+
+
+
 
 
 
