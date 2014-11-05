@@ -170,12 +170,12 @@ watch dmesg  \| tail -5
 
 When master gets shutdown signal, 
 
-1 Refuse additional (new) connections: 
+1. Refuse additional (new) connections: 
 	-	change file [pg_hba.conf](http://www.postgresql.org/docs/9.1/static/auth-pg-hba-conf.html) to reject new connections
 	- "SELECT pg_reloadconf();" or "pg_ctl reload conf" or "kill -HUP" to enact configuration
-2 [Drop existing sessions](http://www.devopsderek.com/blog/2012/11/13/list-and-disconnect-postgresql-db-sessions/)
+2. [Drop existing sessions](http://www.devopsderek.com/blog/2012/11/13/list-and-disconnect-postgresql-db-sessions/)
 	- "SELECT pg_terminate_backend( <procpid> )"
-3 Instruct PostgreSQL to write (flush) remaining transaction log (WAL records) to tables by creating a checkpoint 
+3. Instruct PostgreSQL to write (flush) remaining transaction log (WAL records) to tables by creating a checkpoint 
 
 ```
 SELCT pg_reloadconf();
