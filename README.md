@@ -461,7 +461,7 @@ SELECT client_addr,
 - When we compare against `replay_location`, we know it's in the actual database tables. 
 
 
-## On the slave which becomes master, run `repmgr standby promote`
+## Turn one of the slaves into the new master (`repmgr standby promote`)
 
 Use either `repmgr standby promote` (as a convenient wrapper) or naked `pg_ctl promote`.
 
@@ -470,7 +470,7 @@ $ sudo postgres    / su - postgres
 $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby promote
 ```
 
-## On the other slave which has a new master, run `repmgr standby follow`
+## Tell slaves to sync against the new master (`repmgr standby follow`)
 
 All nodes (master and slaves) know each other. When calling `repmgr standby follow` is forced upon the slaves, they ask around (via SQL) to determine who the new master is. This is done by calling `pg_is_in_recovery()`, which is `false` on the master.   
 
