@@ -134,8 +134,7 @@ aptitude install xfsprogs
 mkfs.xfs /dev/data/pgdata
 ```
 
-
-
+## Setup automount
 
 ```
 $ tail /etc/fstab
@@ -145,13 +144,17 @@ $ tail /etc/fstab
 ```
 
 
+
+# Questions:
+
+- For the block device driver for Azure Linux IaaS, what's supported or optimal? open_datasync, fdatasync (default on Linux), fsync, fsync_writethrough, open_sync. This is relevant to configure wal_sync_method
+- It seems that the guest OS does not see a detached data disk. An attached disk shows up in dmesg, while a detach process doesn't show up. When trying to open a formerly attached device (with cfdisk), the 
+
+# Unix vodoo :-)
+
 ## See what's happening 
 
 ```
 watch dmesg  \| tail -5
 ```
 
-# Questions:
-
-- For the block device driver for Azure Linux IaaS, what's supported or optimal? open_datasync, fdatasync (default on Linux), fsync, fsync_writethrough, open_sync. This is relevant to configure wal_sync_method
-- It seems that the guest OS does not see a detached data disk. An attached disk shows up in dmesg, while a detach process doesn't show up. When trying to open a formerly attached device (with cfdisk), the 
