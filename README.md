@@ -421,6 +421,9 @@ $ service postgresql start
 
 ```
 
+## Determine whether you're on master or slave
+
+`SELECT pg_is_in_recovery()` returns `false` on the master (who is not in recovery), and `true` for slaves (who are in constant recovery mode).
 
 
 
