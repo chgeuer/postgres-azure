@@ -206,9 +206,52 @@ static function OnBeforeRequest(oSession: Session) {
 
 ### Command line for launching a PostgreSQL machine
 
+Command line:
 
 ```
-azure vm create-from cloudservicename v.json --connect --verbose --json
+azure vm create-from cloudservicename machine.json --connect --verbose --json
+```
+
+
+```JSON
+{
+  "RoleName": "database-vm",
+  "RoleType": "PersistentVMRole",
+  "RoleSize": "A5",
+  "AvailabilitySetName" : "databases",
+  "OSVirtualHardDisk": {
+    "OS": "Linux",
+    "HostCaching": "ReadWrite",
+    "DiskName": "database-vm-disk",
+    "DiskLabel": "database-vm-disk",
+    "SourceImageName": "Debian-Wheezy-635506180993665396",
+    "RemoteSourceImageLink": "http://account.blob.core.windows.net/vmdepot-images/TE-2014-11-03-debianwheezy-os-2014-11-03.vhd",
+    "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-disk.vhd"
+  },
+  "DataVirtualHardDisks" : [
+    {"HostCaching": "ReadOnly", "DiskLabel": "database-vm-data1", "Lun": "0", "LogicalDiskSizeInGB": "1023", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-data1.vhd"},
+    {"HostCaching": "ReadOnly", "DiskLabel": "database-vm-data2", "Lun": "1", "LogicalDiskSizeInGB": "1023", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-data2.vhd"},
+    {"HostCaching": "ReadOnly", "DiskLabel": "database-vm-xlog1", "Lun": "2", "LogicalDiskSizeInGB": "1023", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-xlog1.vhd"} 
+  ],
+  "ConfigurationSets": [
+    {
+      "ConfigurationSetType" : "LinuxProvisioningConfiguration",
+      "HostName" : "database-vm",
+      "UserName" : "ruth",
+      "UserPassword" : "Supersecret123!!",
+      "DisableSshPasswordAuthentication" : false
+    },
+    {
+      "ConfigurationSetType": "NetworkConfiguration",
+      "SubnetNames": [ "mysubnet" ],
+      "InputEndpoints": [],
+      "PublicIPs": [],
+      "StoredCertificateSettings": []
+    }
+  ],
+  "ProvisionGuestAgent": "true",
+  "ResourceExtensionReferences": []
+}
 ```
 
 
@@ -220,6 +263,9 @@ createuser application_admin
 
 # -O owner
 createdb -O application_admin my_database
+
+# Add application_admin to administrators in /etc/postgresql/9.3/main/pg_hba.conf
+vim  /etc/postgresql/9.3/main/pg_hba.conf
 
 # -s n scaling factor
 # -i initialization
