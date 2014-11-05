@@ -2,7 +2,7 @@ Setting up PostgreSQL
 =====================
 
 
-<script>
+<script type="text/javascript">
 setTimeout(function(){
    window.location.reload(1);
 }, 5000);
