@@ -90,6 +90,44 @@ Put replication configuration into dedicated file
 include_if_exists = 'replication.conf'
 ```
 
+# replication.conf
+
+## wal_keep_segments
+
+How many segments to hold in xlog folder. Having a longer value allows slaves to keep up. 500*16 MB = 8 GB
+
+```
+wal_keep_segments=500
+```
+## wal_level
+
+All nodes (master and slaves) need to be in hot_standby to that slaves can become master. 
+
+```
+wal_level='hot_standby'
+```
+
+## archive_mode and archive_command
+
+```
+archive_mode=on
+archive_command='cd .'
+```
+
+## max_val_senders
+
+Number of machines
+
+```
+max_val_senders=5
+```
+
+
+
+
+
+
+
 # Attach, mount and stripe data disks
 
 - Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-
@@ -172,12 +210,13 @@ SELECT pg_terminate_backend(pid)
 CHECKPOINT
 ```
 
-Determine xlog location of the previously checked checkpoint:
+Determine xlog location of the current xlog position, something after the previously made checkpoint. Here, we can be sure that after the checkpoint, only non-relevant changes (like vacuuming) happened to the tables. 
 
 ```
 SELECT pg_current_xlog_location();
 ```
 
+Determine replication lag 
 
 
 
@@ -291,3 +330,11 @@ static function OnBeforeRequest(oSession: Session) {
 ```
 watch dmesg  \| tail -5
 ```
+
+
+# References
+
+- [Linux and Graceful Shutdowns](http://azure.microsoft.com/blog/2014/05/06/linux-and-graceful-shutdowns-2/)
+- [Create Virtual Machine Deployment REST API](http://msdn.microsoft.com/en-us/library/azure/jj157194.aspx)
+- [Azure command-line tool for Mac and Linux](http://azure.microsoft.com/en-us/documentation/articles/command-line-tools/)
+
