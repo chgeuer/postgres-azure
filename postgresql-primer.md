@@ -26,6 +26,6 @@
 	- Logical Decoding used for multi-master replication (bi-directional replication sync hin- und her)
 	- Problem ist in geo-verteilten Datacentern mit high latency. US-Datenbank für US-Kunden, EU-Datenbank für EU Kunden, und mit bi-directional replication alle Daten überall, die Daten der Kollegen halt etwas später (5 mins)
 	- Streaming Replication ermöglicht "Read Scaling", also schreiben auf eine einzelne DB, und aus mehreren Read-Slaves rauslesen. Man kann in einem View schauen, wie weit der Slave hinterher ist. 
-	- Die Read-Slaves können zum Master promoted werden, wird von Read-Only zu Read-Write. Mit PGBouncer und DNS die Clients umbiegen. Wenn der Master wieder hochkommt, wird per RSYNC die letzten Änderungen vom neuen Master auf den wieder hochkommenden alten Master repliziert. (rep manager www.repmgr.org) 
+	- Die Read-Slaves können zum Master promoted werden, wird von Read-Only zu Read-Write. Mit PGBouncer und DNS die Clients umbiegen. Wenn der Master wieder hochkommt, wird per RSYNC die letzten Änderungen vom neuen Master auf den wieder hochkommenden alten Master repliziert. (rep manager http://www.repmgr.org / https://github.com/2ndQuadrant/repmgr) 
 	- PostgreSQL forked bei neuen Verbindungen. pgBouncer ist ein Service, der Connection-Pooling für mis-behaving clients anbietet. pgBouncer authentifiziert Clients. 
 		
