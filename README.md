@@ -211,3 +211,10 @@ static function OnBeforeRequest(oSession: Session) {
 azure vm create-from cloudservicename v.json --connect --verbose --json
 ```
 
+
+
+### PostgreSQL admin stuff
+
+```
+createuser application_admin
+```
