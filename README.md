@@ -172,6 +172,21 @@ aptitude install postgresql-9.3
 aptitude install mdadm
 ```
 
+
+## Move database files into striped volume 
+
+```
+mv    /var/lib/postgresql/9.3 /space/pgdata/
+ln -s /space/pgdata/9.3       /var/lib/postgresql/9.3
+
+mv    /space/pgdata/9.3/main/pg_xlog /space/pgxlog/9.3
+ln -s /space/pgxlog/9.3              /space/pgdata/9.3/main/pg_xlog
+```
+
+
+
+
+
 ## Edit /etc/postgresql/9.3/main/postgresql.conf
 
 Uncomment listen_addresses (Database only reachable through jump host)
@@ -273,15 +288,6 @@ host   replication    repl    10.10.0.0/16    md5
 
 
 
-## Move database files into striped volume 
-
-```
-mv    /var/lib/postgresql/9.3 /space/pgdata/
-ln -s /space/pgdata/9.3       /var/lib/postgresql/9.3
-
-mv    /space/pgdata/9.3/main/pg_xlog /space/pgxlog/9.3
-ln -s /space/pgxlog/9.3              /space/pgdata/9.3/main/pg_xlog
-```
 
 
 
