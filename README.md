@@ -399,7 +399,13 @@ SELECT pg_current_xlog_location();
 Determine replication lag 
 
 ```
-SELECT client_addr, replay_location, pg_current_xlog_location(), pg_xloc_location_diff(pg_current_xloc_location(), replay_location) from pg_stat_replication;
+SELECT client_addr, 
+	replay_location, 
+	pg_current_xlog_location(), 
+	pg_xloc_location_diff(
+		pg_current_xloc_location(), 
+		replay_location) 
+	from pg_stat_replication;
 ```
 
 
