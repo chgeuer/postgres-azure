@@ -185,6 +185,10 @@ ln -s /space/pgxlog/9.3              /space/pgdata/9.3/main/pg_xlog
 ```
 
 
+# Distribute SSH keys for user postgres across the cluster
+
+Whatever it takes
+
 
 
 
@@ -315,13 +319,33 @@ Permissions
 $ chmod 0600  /var/lib/postgresql/.pgpass
 ```
 
-### Setup repmgr
+### Setup repmgr on master node
 
 ```
 $ sudo postgres
 $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose master register
 ```
 
+### Setup repmgr on standby nodes (slaves)
+
+```
+$ sudo postgres
+
+# -d database
+# -U user
+# -R rsync user
+# -D data dir
+# -w WAL keep segments (default is 5000, which is too large)
+# 10.10.0.7 IP address of master
+
+$ repmgr -d repmgr \
+	-U repl \
+	-R postgres -w 500 \
+	-D /var/lib/postgres/9.3/main \
+	-f /var/lib/postgresql/repmgr.conf \
+	--verbose \
+	standby clone 10.10.0.7
+```
 
 
 
