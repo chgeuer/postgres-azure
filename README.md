@@ -310,7 +310,7 @@ conninfo='host=10.10.0.7 user=repl dbname=repmgr'
 
 ```
 # hostname:port:database:username:password
-*:*:repmgr:repl:supersecret123.-
+*:*:*:repl:supersecret123.-
 ```
 
 Permissions
@@ -326,7 +326,7 @@ $ sudo postgres
 $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose master register
 ```
 
-### Setup repmgr on standby nodes (slaves)
+### Setup repmgr on standby nodes (slaves) *before starting postgres on the slaves*
 
 ```
 $ sudo postgres
@@ -345,6 +345,9 @@ $ repmgr -d repmgr \
 	-f /var/lib/postgresql/repmgr.conf \
 	--verbose \
 	standby clone 10.10.0.7
+
+
+$ service postgresql start
 ```
 
 
