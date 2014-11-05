@@ -346,8 +346,10 @@ $ repmgr -d repmgr \
 	--verbose \
 	standby clone 10.10.0.7
 
-
 $ service postgresql start
+
+$ repmgr -f /var/lib/postgresql/repmgr.conf \
+	--verbose standby register
 ```
 
 
@@ -365,6 +367,8 @@ $ service postgresql start
 
 
 # Local agent
+
+## When the current master goes down
 
 When master gets shutdown signal, 
 
@@ -391,9 +395,14 @@ SELECT pg_current_xlog_location();
 
 Determine replication lag 
 
+## On the slave which becomes master
 
+Use either `repmgr standby promote` (as a convenient wrapper) or naked `pg_ctl promote`.
 
-
+```
+$ sudo postgres
+$ repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby promote
+```
 
 
 
