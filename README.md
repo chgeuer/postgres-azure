@@ -27,7 +27,125 @@ azure vm create DNS_PREFIX --community vmdepot-65-6-32 --virtual-network-name  -
 Create an A5 instance
 ```
 
-# PostgreSQL
+
+# Command line for creating a PostgreSQL machine
+
+Command line:
+
+```
+azure vm create-from cloudservicename machine.json --connect --verbose --json
+```
+
+## machine.json
+
+```JSON
+{
+  "RoleName": "database-vm",
+  "RoleType": "PersistentVMRole",
+  "RoleSize": "A5",
+  "AvailabilitySetName" : "databases",
+  "OSVirtualHardDisk": {
+    "OS": "Linux",
+    "HostCaching": "ReadWrite",
+    "DiskName": "database-vm-disk",
+    "DiskLabel": "database-vm-disk",
+    "SourceImageName": "Debian-Wheezy-635506180993665396",
+    "RemoteSourceImageLink": "http://account.blob.core.windows.net/vmdepot-images/TE-2014-11-03-debianwheezy-os-2014-11-03.vhd",
+    "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-disk.vhd"
+  },
+  "DataVirtualHardDisks" : [
+    {"HostCaching": "ReadOnly", "DiskLabel": "database-vm-data1", "Lun": "0", "LogicalDiskSizeInGB": "1023", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-data1.vhd"},
+    {"HostCaching": "ReadOnly", "DiskLabel": "database-vm-data2", "Lun": "1", "LogicalDiskSizeInGB": "1023", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-data2.vhd"},
+    {"HostCaching": "ReadOnly", "DiskLabel": "database-vm-xlog1", "Lun": "2", "LogicalDiskSizeInGB": "1023", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-xlog1.vhd"} 
+  ],
+  "ConfigurationSets": [
+    {
+      "ConfigurationSetType" : "LinuxProvisioningConfiguration",
+      "HostName" : "database-vm",
+      "UserName" : "ruth",
+      "UserPassword" : "Supersecret123!!",
+      "DisableSshPasswordAuthentication" : false
+    },
+    {
+      "ConfigurationSetType": "NetworkConfiguration",
+      "SubnetNames": [ "mysubnet" ],
+      "InputEndpoints": [],
+      "PublicIPs": [],
+      "StoredCertificateSettings": []
+    }
+  ],
+  "ProvisionGuestAgent": "true",
+  "ResourceExtensionReferences": []
+}
+```
+
+
+
+
+
+
+# Attach, mount and stripe data disks
+
+- Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-
+raid/)  in order to achieve higher I/O, given current limitation of 500 IOPS per data disk. 
+- One data disk for pg_xlog
+
+```
+azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-datastripe-1.vhd
+azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-datastripe-2.vhd
+azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-xlog.vhd
+```
+
+- Use 'cfdisk' on /dev/sdc and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
+- Use 'cfdisk' on /dev/sdd and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
+- Use 'cfdisk' on /dev/sde and create a primary partition of tyoe '8E' (LVM) for pg_xlog
+
+```
+aptitude install mdadm
+
+mdadm --create /dev/md0 --level 0 --raid-devices 2 /dev/sdc1 /dev/sdd1
+
+aptitude install lvm2
+
+# create physical volume
+pvcreate /dev/md0
+
+# create volume group
+vgcreate data /dev/md0
+
+# create logical volume 
+lvcreate -n pgdata -l100%FREE data
+
+# show volume group information
+vgdisplay
+
+# Now 
+ls -als /dev/data/pgdata
+
+aptitude install xfsprogs
+
+# mkfs -t xfs /dev/data/pgdata
+mkfs.xfs /dev/data/pgdata
+```
+
+## Setup automount
+
+```
+$ tail /etc/fstab
+
+/dev/mapper/data-pgdata /space/pgdata xfs defaults 0 0
+/dev/mapper/xlog-pgxlog /space/pgxlog xfs defaults 0 0
+```
+
+
+
+
+-------------------------------------
+
+
+
+
+# PostgreSQL base install
 
 ## Update local system
 
@@ -155,60 +273,6 @@ host   replication    repl    10.10.0.0/16    md5
 
 
 
-
-# Attach, mount and stripe data disks
-
-- Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-
-raid/)  in order to achieve higher I/O, given current limitation of 500 IOPS per data disk. 
-- One data disk for pg_xlog
-
-```
-azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-datastripe-1.vhd
-azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-datastripe-2.vhd
-azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-xlog.vhd
-```
-
-- Use 'cfdisk' on /dev/sdc and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
-- Use 'cfdisk' on /dev/sdd and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
-- Use 'cfdisk' on /dev/sde and create a primary partition of tyoe '8E' (LVM) for pg_xlog
-
-```
-aptitude install mdadm
-
-mdadm --create /dev/md0 --level 0 --raid-devices 2 /dev/sdc1 /dev/sdd1
-
-aptitude install lvm2
-
-# create physical volume
-pvcreate /dev/md0
-
-# create volume group
-vgcreate data /dev/md0
-
-# create logical volume 
-lvcreate -n pgdata -l100%FREE data
-
-# show volume group information
-vgdisplay
-
-# Now 
-ls -als /dev/data/pgdata
-
-aptitude install xfsprogs
-
-# mkfs -t xfs /dev/data/pgdata
-mkfs.xfs /dev/data/pgdata
-```
-
-## Setup automount
-
-```
-$ tail /etc/fstab
-
-/dev/mapper/data-pgdata /space/pgdata xfs defaults 0 0
-/dev/mapper/xlog-pgxlog /space/pgxlog xfs defaults 0 0
-```
-
 ## Move database files into striped volume 
 
 ```
@@ -220,6 +284,19 @@ ln -s /space/pgxlog/9.3              /space/pgdata/9.3/main/pg_xlog
 ```
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+# Local agent
 
 When master gets shutdown signal, 
 
@@ -253,56 +330,6 @@ Determine replication lag
 
 
 
-# Command line for launching a PostgreSQL machine
-
-Command line:
-
-```
-azure vm create-from cloudservicename machine.json --connect --verbose --json
-```
-
-## machine.json
-
-```JSON
-{
-  "RoleName": "database-vm",
-  "RoleType": "PersistentVMRole",
-  "RoleSize": "A5",
-  "AvailabilitySetName" : "databases",
-  "OSVirtualHardDisk": {
-    "OS": "Linux",
-    "HostCaching": "ReadWrite",
-    "DiskName": "database-vm-disk",
-    "DiskLabel": "database-vm-disk",
-    "SourceImageName": "Debian-Wheezy-635506180993665396",
-    "RemoteSourceImageLink": "http://account.blob.core.windows.net/vmdepot-images/TE-2014-11-03-debianwheezy-os-2014-11-03.vhd",
-    "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-disk.vhd"
-  },
-  "DataVirtualHardDisks" : [
-    {"HostCaching": "ReadOnly", "DiskLabel": "database-vm-data1", "Lun": "0", "LogicalDiskSizeInGB": "1023", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-data1.vhd"},
-    {"HostCaching": "ReadOnly", "DiskLabel": "database-vm-data2", "Lun": "1", "LogicalDiskSizeInGB": "1023", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-data2.vhd"},
-    {"HostCaching": "ReadOnly", "DiskLabel": "database-vm-xlog1", "Lun": "2", "LogicalDiskSizeInGB": "1023", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-xlog1.vhd"} 
-  ],
-  "ConfigurationSets": [
-    {
-      "ConfigurationSetType" : "LinuxProvisioningConfiguration",
-      "HostName" : "database-vm",
-      "UserName" : "ruth",
-      "UserPassword" : "Supersecret123!!",
-      "DisableSshPasswordAuthentication" : false
-    },
-    {
-      "ConfigurationSetType": "NetworkConfiguration",
-      "SubnetNames": [ "mysubnet" ],
-      "InputEndpoints": [],
-      "PublicIPs": [],
-      "StoredCertificateSettings": []
-    }
-  ],
-  "ProvisionGuestAgent": "true",
-  "ResourceExtensionReferences": []
-}
-```
 
 
 
