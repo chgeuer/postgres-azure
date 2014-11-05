@@ -170,10 +170,12 @@ watch dmesg  \| tail -5
 
 When master gets shutdown signal, 
 
-	1 change [pg_hba.conf](http://www.postgresql.org/docs/9.1/static/auth-pg-hba-conf.html) to reject new connections
-	2 "SELECT pg_reloadconf();" or "pg_ctl reload conf" or "kill -HUP" to enact configuration
-	3 [drop existing sessions](http://www.devopsderek.com/blog/2012/11/13/list-and-disconnect-postgresql-db-sessions/) "SELECT pg_terminate_backend( <procpid> )"
-
+	1 Refuse additional (new) connections: 
+		-	change file [pg_hba.conf](http://www.postgresql.org/docs/9.1/static/auth-pg-hba-conf.html) to reject new connections
+		- "SELECT pg_reloadconf();" or "pg_ctl reload conf" or "kill -HUP" to enact configuration
+	2 [Drop existing sessions](http://www.devopsderek.com/blog/2012/11/13/list-and-disconnect-postgresql-db-sessions/)
+		- "SELECT pg_terminate_backend( <procpid> )"
+	3 Instruct PostgreSQL to write (flush) remaining transaction log (WAL records) to tables by creating a checkpoint 
 
 ```
 SELCT pg_reloadconf();
@@ -186,11 +188,26 @@ CHECKPOINT
 
 ## Enable fiddler to sniff azure-cli 
 
+http://blogs.msdn.com/b/avkashchauhan/archive/2013/01/30/using-fiddler-to-decipher-windows-azure-powershell-or-rest-api-https-traffic.aspx
+
 ```
 SET HTTP_PROXY=http://127.0.0.1:8888/
 SET HTTPS_PROXY=http://127.0.0.1:8888/
 SET HTTPPROXY=http://127.0.0.1:8888/
 SET HTTPSPROXY=http://127.0.0.1:8888/
 SET NODE_TLS_REJECT_UNAUTHORIZED=0
+```
+
+
+```
+static function OnBeforeRequest(oSession: Session) {
+	oSession["https-Client-Certificate"]= "C:\\Users\\chgeuer\\Desktop\\txxx.cer"; 
+```
+
+### Command line for launching a PostgreSQL machine
+
+
+```
+azure vm create-from cloudservicename v.json --connect --verbose --json
 ```
 
