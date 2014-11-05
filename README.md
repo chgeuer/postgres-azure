@@ -212,6 +212,7 @@ Command line:
 azure vm create-from cloudservicename machine.json --connect --verbose --json
 ```
 
+#### machine.json
 
 ```JSON
 {
