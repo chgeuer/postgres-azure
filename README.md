@@ -69,6 +69,7 @@ azure vm create-from cloudservicename machine.json --connect --verbose --json
     {
       "ConfigurationSetType": "NetworkConfiguration",
       "SubnetNames": [ "mysubnet" ],
+      "StaticVirtualNetworkIPAddress": "10.10.0.7",
       "InputEndpoints": [],
       "PublicIPs": [],
       "StoredCertificateSettings": []
@@ -298,7 +299,7 @@ cluster=my_application_cluster
 pg_bindir='/usr/lib/postgres/9.3/bin'
 
 # This must unique be for each respective node
-node=1             
+node=1      
 node_name=postgresvm1
 conninfo='host=10.10.0.7 user=repl dbname=repmgr'
 ```
@@ -322,14 +323,14 @@ $ chmod 0600  /var/lib/postgresql/.pgpass
 ### Setup repmgr on master node
 
 ```
-$ sudo postgres
+$ sudo postgres    / su - prostgres
 $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose master register
 ```
 
 ### Setup repmgr on standby nodes (slaves) *before starting postgres on the slaves*
 
 ```
-$ sudo postgres
+$ sudo postgres    / su - prostgres
 
 # -d database
 # -U user
@@ -400,7 +401,7 @@ Determine replication lag
 Use either `repmgr standby promote` (as a convenient wrapper) or naked `pg_ctl promote`.
 
 ```
-$ sudo postgres
+$ sudo postgres    / su - prostgres
 $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby promote
 ```
 
