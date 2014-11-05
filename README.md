@@ -116,12 +116,19 @@ archive_command='cd .'
 
 ## max_val_senders
 
-Number of machines
+Number of machines, takes away from max_connections. Should be very similar to the size of the cluster. Between 5 and 10 is "OK". Numbers like 500 kill the machine
 
 ```
 max_val_senders=5
 ```
 
+## hot_standby
+
+Allows slaves to already answer to read queries.
+
+```
+hot_standby=on
+```
 
 
 
