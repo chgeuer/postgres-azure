@@ -145,10 +145,12 @@ $ tail /etc/fstab
 ## Move database files into striped volume 
 
 ```
-mv /var/lib/postgresql/9.3 /space/pgdata/
-ln -s /space/pgdata/9.3 /var/lib/postgresql/9.3
-```
+mv    /var/lib/postgresql/9.3 /space/pgdata/
+ln -s /space/pgdata/9.3       /var/lib/postgresql/9.3
 
+mv    /space/pgdata/9.3/main/pg_xlog /space/pgxlog/9.3
+ln -s /space/pgxlog/9.3              /space/pgdata/9.3/main/pg_xlog
+```
 
 # Questions:
 
