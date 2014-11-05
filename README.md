@@ -446,7 +446,7 @@ checkpointXlog == '0/14047810'
 
 Now we can determine the concrete replication lag:
 
-```
+```SQL
 SELECT client_addr, 
 	flush_location, 
 	'0/14047810', 
@@ -465,7 +465,7 @@ SELECT client_addr,
 
 Use either `repmgr standby promote` (as a convenient wrapper) or naked `pg_ctl promote`.
 
-```
+```shell
 $ sudo postgres    / su - prostgres
 $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby promote
 ```
