@@ -382,46 +382,77 @@ When master gets shutdown signal,
 	- "SELECT pg_terminate_backend( <procpid> )"
 3. Instruct PostgreSQL to write (flush) remaining transaction log (WAL records) to tables by creating a checkpoint 
 
+
+### Refuse additional (new) connections
+
+Edit [pg_hba.conf](http://www.postgresql.org/docs/9.1/static/auth-pg-hba-conf.html): Uncomment the "all/all" line, so that nobody can create additional connections. 
+
 ```
-SELECT pg_reloadconf();
-SELECT pg_terminate_backend(pid)
+# host   all            all     10.10.0.0/16    md5
+```
+
+And reload config
+
+```SQL
+SELECT pg_reload_conf();
+```
+
+### Drop existing sessions from the web tier
+
+```SQL
+SELECT pg_terminate_backend(pid) 
 	FROM pg_stat_activity
-	WHERE username="webfrontend";
-CHECKPOINT
+	WHERE usename='webfrontend';
 ```
+
+	(Yes, it is 'usename', not 'username')...
+
+
+### Create a checkpoint on master via SQL
+
+```SQL
+CHECKPOINT;
+```
+
+### Determine xlog location 
 
 Determine xlog location of the current xlog position, something after the previously made checkpoint. Here, we can be sure that after the checkpoint, only non-relevant changes (like vacuuming) happened to the tables. 
 
 Now fetch (once) after the checkpoint operation on the master the XLOG location, and store it in a variable `checkpointXlog`:  
 
-
-```
+```SQL
 SELECT pg_current_xlog_location();
 ```
 
 Determine replication lag for the slaves. When the `pg_xloc_location_diff(...)` function call returns 0, all slaves have catched up. Running below code gives a current view: 
 
-```
+```SQL
 SELECT client_addr, 
-	replay_location, 
+	flush_location, 
 	pg_current_xlog_location(), 
-	pg_xloc_location_diff(
+	pg_xlog_location_diff(
 		pg_current_xloc_location(), 
-		replay_location) 
+		flush_location) 
 	from pg_stat_replication;
 ```
 
-Using the post-checkpoint variable `checkpointXlog`, you can now determine whether it is safe to kill the master: 
+Using the post-checkpoint variable `checkpointXlog`, you can now determine whether it is safe to kill the master. 
+
+checkpointXlog = '0/14047810'
 
 ```
 SELECT client_addr, 
-	replay_location, 
-	checkpointXlog, 
-	pg_xloc_location_diff(
-		checkpointXlog, 
-		replay_location) 
+	flush_location, 
+	'0/14047810', 
+	pg_xlog_location_diff(
+		'0/14047810', 
+		flush_location) 
 	from pg_stat_replication;
 ```
+
+- when the `pg_xlog_location_diff` column has non-positiv values, it's safe to shoot the master in the head. 
+- When we compare against `flush_location`, we not it's on the harddisk of the slave. 
+- When we compare against `replay_location`, we know it's in the actual database tables. 
 
 
 ## On the slave which becomes master
@@ -432,6 +463,7 @@ Use either `repmgr standby promote` (as a convenient wrapper) or naked `pg_ctl p
 $ sudo postgres    / su - prostgres
 $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby promote
 ```
+
 
 
 
