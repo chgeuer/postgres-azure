@@ -443,6 +443,12 @@ SELECT client_addr,
 - When we compare against `flush_location`, we not it's on the harddisk of the slave. 
 - When we compare against `replay_location`, we know it's in the actual database tables. 
 
+Stop old master server 
+
+```console
+$ sudo postgres    / su - postgres
+$ service postgresql stop
+```
 
 ## Turn one of the slaves into the new master (`repmgr standby promote`)
 
@@ -472,7 +478,7 @@ $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby follow
 
 Make a `repmgr standby clone` against a previous slave, who became master
 
-```console
+```console		
 $ sudo postgres    / su - postgres
 
 $ vim /etc/postgresql/9.3/main/pg_hba.conf
