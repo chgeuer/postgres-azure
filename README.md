@@ -92,8 +92,7 @@ $ aptitude install xfsprogs
 
 # Setup striping
 
-- Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-
-raid/)  in order to achieve higher I/O, given current limitation of 500 IOPS per data disk. 
+- Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-raid/)  in order to achieve higher I/O, given current limitation of 500 IOPS per data disk. 
 - One data disk for pg_xlog
 
 - Use 'cfdisk' on /dev/sdc and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
