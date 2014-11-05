@@ -2,6 +2,12 @@ Setting up PostgreSQL
 =====================
 
 
+<script>
+setTimeout(function(){
+   window.location.reload(1);
+}, 5000);
+</script>
+
 # Login to Azure
 
 - Download publish settings at https://manage.windowsazure.com/publishsettings/index?client=xplat 
