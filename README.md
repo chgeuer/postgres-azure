@@ -5,7 +5,7 @@ Setting up PostgreSQL
 
 - Download publish settings at https://manage.windowsazure.com/publishsettings/index?client=xplat 
 
-```
+```console
 npm install azure-cli
 azure account clear
 azure account import "Windows Azure MSDN - Visual Studio Ultimate-11-4-2014-credentials.publishsettings"
@@ -20,7 +20,7 @@ azure account list
 - http://blogs.msdn.com/b/silverlining/archive/2012/10/25/exporting-and-importing-vm-settings-with-the-azure-command-line-tools.aspx
 
 
-```
+```console
 azure vm list --json
 azure vm create DNS_PREFIX --community vmdepot-65-6-32 --virtual-network-name  -l "West Europe" USER_NAME [PASSWORD] [--ssh] [other_options]
 
@@ -32,7 +32,7 @@ Create an A5 instance
 
 Command line:
 
-```
+```console
 azure vm create-from cloudservicename machine.json --connect --verbose --json
 ```
 
@@ -93,7 +93,7 @@ See the [REST API](http://msdn.microsoft.com/en-us/library/azure/jj157194.aspx) 
 raid/)  in order to achieve higher I/O, given current limitation of 500 IOPS per data disk. 
 - One data disk for pg_xlog
 
-```
+```console
 azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-datastripe-1.vhd
 azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-datastripe-2.vhd
 azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-xlog.vhd
@@ -107,7 +107,7 @@ azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows
 
 # Bring Linux up to date
 
-```
+```console
 $ aptitude update
 $ aptitude update && aptitude upgrade
 $ aptitude install rsync
@@ -120,7 +120,7 @@ $ aptitude install xfsprogs
 # Setup striping
 
 
-```
+```console
 $ mdadm --create /dev/md0 --level 0 --raid-devices 2 /dev/sdc1 /dev/sdd1
 
 # create physical volume
@@ -144,7 +144,7 @@ $ mkfs.xfs /dev/data/pgdata
 
 Setup automount
 
-```
+```console
 $ tail /etc/fstab
 
 /dev/mapper/data-pgdata /space/pgdata xfs defaults 0 0
@@ -273,7 +273,7 @@ hot_standby=on
 
 # Add postgres user with replication priviledge and superuser 
 
-```
+```console
 # username "repl" 
 # -P = get password from <stdin>
 # -S = super user, in order to run repmgr (otherwise, error "permission denied for language C" comes)
@@ -318,20 +318,20 @@ conninfo='host=10.10.0.7 user=repl dbname=repmgr'
 
 Permissions
 
-```
+```console
 $ chmod 0600  /var/lib/postgresql/.pgpass
 ```
 
 ### Setup repmgr on master node
 
-```
+```console
 $ sudo postgres    / su - postgres
 $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose master register
 ```
 
 ### Setup repmgr on standby nodes (slaves) *before starting postgres on the slaves*
 
-```
+```console
 $ sudo postgres    / su - postgres
 
 # -d database
@@ -438,7 +438,7 @@ SELECT client_addr,
 
 Using the post-checkpoint variable `checkpointXlog`, you can now determine whether it is safe to kill the master. 
 
-```
+```ruby
 var checkpointXlog = eval("SELECT pg_current_xlog_location();")
 
 checkpointXlog == '0/14047810'
@@ -466,8 +466,8 @@ SELECT client_addr,
 Use either `repmgr standby promote` (as a convenient wrapper) or naked `pg_ctl promote`.
 
 ```bash
-sudo postgres    / su - postgres
-repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby promote
+$ sudo postgres    / su - postgres
+$ repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby promote
 ```
 
 ## On the other slave which has a new master, run `repmgr standby follow`
