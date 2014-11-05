@@ -100,35 +100,46 @@ azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows
 - Use 'cfdisk' on /dev/sdd and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
 - Use 'cfdisk' on /dev/sde and create a primary partition of tyoe '8E' (LVM) for pg_xlog
 
+
+
+# Bring Linux up to date
+
 ```
-aptitude install mdadm
+$ aptitude update
+$ aptitude update && aptitude upgrade
+$ aptitude install rsync
+$ aptitude install mdadm
+$ aptitude install lvm2
+$ aptitude install xfsprogs
 
-mdadm --create /dev/md0 --level 0 --raid-devices 2 /dev/sdc1 /dev/sdd1
+```
 
-aptitude install lvm2
+# Setup striping
+
+
+```
+$ mdadm --create /dev/md0 --level 0 --raid-devices 2 /dev/sdc1 /dev/sdd1
 
 # create physical volume
-pvcreate /dev/md0
+$ pvcreate /dev/md0
 
 # create volume group
-vgcreate data /dev/md0
+$ vgcreate data /dev/md0
 
 # create logical volume 
-lvcreate -n pgdata -l100%FREE data
+$ lvcreate -n pgdata -l100%FREE data
 
 # show volume group information
-vgdisplay
+$ vgdisplay
 
 # Now 
-ls -als /dev/data/pgdata
-
-aptitude install xfsprogs
+$ ls -als /dev/data/pgdata
 
 # mkfs -t xfs /dev/data/pgdata
-mkfs.xfs /dev/data/pgdata
+$ mkfs.xfs /dev/data/pgdata
 ```
 
-## Setup automount
+Setup automount
 
 ```
 $ tail /etc/fstab
@@ -140,36 +151,26 @@ $ tail /etc/fstab
 
 
 
--------------------------------------
-
-
 
 
 # PostgreSQL base install
 
-## Update local system
 
-```
-aptitude update
-```
 
 ## Install PostgreSQL 
 
 Install PostgreSQL, as documented under https://wiki.postgresql.org/wiki/Apt 
 
 ```
-sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+$ sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
 
-aptitude install wget ca-certificates
+$ aptitude install wget ca-certificates
 
-wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+$ wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
 
+$ aptitude install postgresql-9.3
 
-aptitude update && aptitude upgrade
-
-aptitude install postgresql-9.3
-
-aptitude install mdadm
+$ aptitude install repmgr 
 ```
 
 
@@ -281,7 +282,7 @@ Add the following line to allow subnet 10.10.0.0/16 to do replication with user 
 host   replication    repl    10.10.0.0/16    md5
 ```
 
-# Configure /var/lib/postgresql/repmgr.conf on all hosts. 
+## Configure /var/lib/postgresql/repmgr.conf on all hosts. 
 
 These settings are written to the DB, and visible in the cluster, so IPs must be real ones . 
 
@@ -295,7 +296,7 @@ node_name=postgresvm1
 conninfo='host=10.10.0.7 user=repl dbname=repmgr'
 ```
 
-
+## Create 
 
 
 
