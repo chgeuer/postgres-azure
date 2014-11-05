@@ -223,7 +223,7 @@ Put replication configuration into dedicated file
 include_if_exists = 'replication.conf'
 ```
 
-# replication.conf
+# Edit /etc/postgresql/9.3/main/replication.conf
 
 ## wal_keep_segments
 
@@ -273,7 +273,7 @@ $ su postgres
 $ createuser --replication repl -P 
 ```
 
-# pg_hba.conf
+## Edit /etc/postgresql/9.3/main/pg_hba.conf
 
 Add the following line to allow subnet 10.10.0.0/16 to do replication with user ID "repl"
 
@@ -281,7 +281,19 @@ Add the following line to allow subnet 10.10.0.0/16 to do replication with user 
 host   replication    repl    10.10.0.0/16    md5
 ```
 
+# Configure /var/lib/postgresql/repmgr.conf on all hosts. 
 
+These settings are written to the DB, and visible in the cluster, so IPs must be real ones . 
+
+```
+All nodes have the same cluster name
+cluster=my_application_cluster
+
+# This must unique be for each respective node
+node=1             
+node_name=postgresvm1
+conninfo='host=10.10.0.7 user=repl dbname=repmgr'
+```
 
 
 
