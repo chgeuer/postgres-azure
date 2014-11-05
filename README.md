@@ -1,14 +1,6 @@
 Setting up PostgreSQL
 =====================
 
-
-<script type="text/javascript">
-setTimeout(function(){
-	console.log("Reload");
-   window.location.reload(1);
-}, 5000);
-</script>
-
 # Login to Azure
 
 - Download publish settings at https://manage.windowsazure.com/publishsettings/index?client=xplat 
@@ -150,6 +142,12 @@ $ tail /etc/fstab
 /dev/mapper/xlog-pgxlog /space/pgxlog xfs defaults 0 0
 ```
 
+## Move database files into striped volume 
+
+```
+mv /var/lib/postgresql/9.3 /space/pgdata/
+ln -s /space/pgdata/9.3 /var/lib/postgresql/9.3
+```
 
 
 # Questions:
