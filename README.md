@@ -461,7 +461,7 @@ $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby promote
 
 ## Tell slaves to sync against the new master (`repmgr standby follow`)
 
-All nodes (master and slaves) know each other. When calling `repmgr standby follow` is forced upon the slaves, they ask around (via SQL) to determine who the new master is. This is done by calling `pg_is_in_recovery()`, which is `false` on the master.   
+All nodes (master and slaves) know each other. When calling `repmgr standby follow` is forced upon the slaves, they ask around (via SQL) to determine who the new master is. This is done by calling `pg_is_in_recovery()`, which is `false` on a master. This step recreates the `recovery.conf` file, which lists the IP of the new master. 
 
 ```
 $ sudo postgres    / su - postgres
