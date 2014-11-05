@@ -153,19 +153,6 @@ mv    /space/pgdata/9.3/main/pg_xlog /space/pgxlog/9.3
 ln -s /space/pgxlog/9.3              /space/pgdata/9.3/main/pg_xlog
 ```
 
-# Questions:
-
-- For the block device driver for Azure Linux IaaS, what's supported or optimal? open_datasync, fdatasync (default on Linux), fsync, fsync_writethrough, open_sync. This is relevant to configure wal_sync_method
-- It seems that the guest OS does not see a detached data disk. An attached disk shows up in dmesg, while a detach process doesn't show up. When trying to open a formerly attached device (with cfdisk), the 
-
-# Unix vodoo :-)
-
-## See what's happening 
-
-```
-watch dmesg  \| tail -5
-```
-
 
 
 When master gets shutdown signal, 
@@ -185,26 +172,21 @@ SELECT pg_terminate_backend(pid)
 CHECKPOINT
 ```
 
-
-## Enable fiddler to sniff azure-cli 
-
-http://blogs.msdn.com/b/avkashchauhan/archive/2013/01/30/using-fiddler-to-decipher-windows-azure-powershell-or-rest-api-https-traffic.aspx
+Determine xlog location of the previously checked checkpoint:
 
 ```
-SET HTTP_PROXY=http://127.0.0.1:8888/
-SET HTTPS_PROXY=http://127.0.0.1:8888/
-SET HTTPPROXY=http://127.0.0.1:8888/
-SET HTTPSPROXY=http://127.0.0.1:8888/
-SET NODE_TLS_REJECT_UNAUTHORIZED=0
+SELECT pg_current_xlog_location();
 ```
 
 
-```
-static function OnBeforeRequest(oSession: Session) {
-	oSession["https-Client-Certificate"]= "C:\\Users\\chgeuer\\Desktop\\txxx.cer"; 
-```
 
-### Command line for launching a PostgreSQL machine
+
+
+
+
+
+
+# Command line for launching a PostgreSQL machine
 
 Command line:
 
@@ -212,7 +194,7 @@ Command line:
 azure vm create-from cloudservicename machine.json --connect --verbose --json
 ```
 
-#### machine.json
+## machine.json
 
 ```JSON
 {
@@ -257,7 +239,7 @@ azure vm create-from cloudservicename machine.json --connect --verbose --json
 
 
 
-### PostgreSQL admin stuff
+# PostgreSQL admin stuff
 
 ```
 createuser application_admin
@@ -272,4 +254,40 @@ vim  /etc/postgresql/9.3/main/pg_hba.conf
 # -i initialization
 # -U username
 pgbench -s 10 -i -U application_admin my_database
+```
+
+
+
+
+
+## Enable fiddler to sniff azure-cli 
+
+http://blogs.msdn.com/b/avkashchauhan/archive/2013/01/30/using-fiddler-to-decipher-windows-azure-powershell-or-rest-api-https-traffic.aspx
+
+```
+SET HTTP_PROXY=http://127.0.0.1:8888/
+SET HTTPS_PROXY=http://127.0.0.1:8888/
+SET HTTPPROXY=http://127.0.0.1:8888/
+SET HTTPSPROXY=http://127.0.0.1:8888/
+SET NODE_TLS_REJECT_UNAUTHORIZED=0
+```
+
+
+```
+static function OnBeforeRequest(oSession: Session) {
+	oSession["https-Client-Certificate"]= "C:\\Users\\chgeuer\\Desktop\\txxx.cer"; 
+```
+
+
+# Questions:
+
+- For the block device driver for Azure Linux IaaS, what's supported or optimal? open_datasync, fdatasync (default on Linux), fsync, fsync_writethrough, open_sync. This is relevant to configure wal_sync_method
+- It seems that the guest OS does not see a detached data disk. An attached disk shows up in dmesg, while a detach process doesn't show up. When trying to open a formerly attached device (with cfdisk), the 
+
+# Unix vodoo :-)
+
+## See what's happening 
+
+```
+watch dmesg  \| tail -5
 ```
