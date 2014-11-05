@@ -325,14 +325,14 @@ $ chmod 0600  /var/lib/postgresql/.pgpass
 ### Setup repmgr on master node
 
 ```
-$ sudo postgres    / su - prostgres
+$ sudo postgres    / su - postgres
 $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose master register
 ```
 
 ### Setup repmgr on standby nodes (slaves) *before starting postgres on the slaves*
 
 ```
-$ sudo postgres    / su - prostgres
+$ sudo postgres    / su - postgres
 
 # -d database
 # -U user
@@ -465,16 +465,16 @@ SELECT client_addr,
 
 Use either `repmgr standby promote` (as a convenient wrapper) or naked `pg_ctl promote`.
 
-```shell
-$ sudo postgres    / su - prostgres
-$ repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby promote
+```bash
+sudo postgres    / su - postgres
+repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby promote
 ```
 
 ## On the other slave which has a new master, run `repmgr standby follow`
 
 
 ```
-$ sudo postgres    / su - prostgres
+$ sudo postgres    / su - postgres
 $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby follow
 ```
 
