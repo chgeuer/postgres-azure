@@ -1,5 +1,5 @@
-Setting up PostgreSQL
-=====================
+Setting up PostgreSQL on Microsoft Azure Virtual Machines (IaaS)
+================================================================
 
 # Login to Azure
 
@@ -8,17 +8,14 @@ Setting up PostgreSQL
 ```console
 npm install azure-cli
 azure account clear
-azure account import "Windows Azure MSDN - Visual Studio Ultimate-11-4-2014-credentials.publishsettings"
+azure account import "Windows Azure MSDN - Visual Studio Ultimate-credentials.publishsettings"
 azure account set "internal"
 azure account list
 ```
 
-
 # Get the image
 
 - Debian Wheezy Image from https://vmdepot.msopentech.com/Vhd/Show?vhdId=65&version=400
-- http://blogs.msdn.com/b/silverlining/archive/2012/10/25/exporting-and-importing-vm-settings-with-the-azure-command-line-tools.aspx
-
 
 ```console
 azure vm list --json
@@ -26,7 +23,6 @@ azure vm create DNS_PREFIX --community vmdepot-65-6-32 --virtual-network-name  -
 
 Create an A5 instance
 ```
-
 
 # Command line for creating a PostgreSQL machine
 
@@ -42,68 +38,45 @@ See the [REST API](http://msdn.microsoft.com/en-us/library/azure/jj157194.aspx) 
 
 ```JSON
 {
-  "RoleName": "database-vm",
-  "RoleType": "PersistentVMRole",
-  "RoleSize": "A5",
-  "AvailabilitySetName" : "databases",
-  "OSVirtualHardDisk": {
-    "OS": "Linux",
-    "HostCaching": "ReadWrite",
-    "DiskName": "database-vm-disk",
-    "DiskLabel": "database-vm-disk",
-    "SourceImageName": "Debian-Wheezy-635506180993665396",
-    "RemoteSourceImageLink": "http://account.blob.core.windows.net/vmdepot-images/TE-2014-11-03-debianwheezy-os-2014-11-03.vhd",
-    "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-disk.vhd"
-  },
-  "DataVirtualHardDisks" : [
-    {"HostCaching": "ReadOnly", "DiskLabel": "database-vm-data1", "Lun": "0", "LogicalDiskSizeInGB": "1023", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-data1.vhd"},
-    {"HostCaching": "ReadOnly", "DiskLabel": "database-vm-data2", "Lun": "1", "LogicalDiskSizeInGB": "1023", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-data2.vhd"},
-    {"HostCaching": "ReadOnly", "DiskLabel": "database-vm-xlog1", "Lun": "2", "LogicalDiskSizeInGB": "1023", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-xlog1.vhd"} 
-  ],
-  "ConfigurationSets": [
-    {
-      "ConfigurationSetType" : "LinuxProvisioningConfiguration",
-      "HostName" : "database-vm",
-      "UserName" : "ruth",
-      "UserPassword" : "Supersecret123!!",
-      "DisableSshPasswordAuthentication" : false
-    },
-    {
-      "ConfigurationSetType": "NetworkConfiguration",
-      "SubnetNames": [ "mysubnet" ],
-      "StaticVirtualNetworkIPAddress": "10.10.0.7",
-      "InputEndpoints": [],
-      "PublicIPs": [],
-      "StoredCertificateSettings": []
-    }
-  ],
-  "ProvisionGuestAgent": "true",
-  "ResourceExtensionReferences": []
+	"RoleName": "database-vm-1",
+	"RoleType": "PersistentVMRole",
+	"RoleSize": "A5",
+	"AvailabilitySetName" : "databases",
+	"OSVirtualHardDisk": {
+		"OS": "Linux",
+		"HostCaching": "ReadWrite",
+		"DiskName": "database-vm-1-disk",
+		"DiskLabel": "database-vm-1-disk",
+		"SourceImageName": "Debian-Wheezy-635506180993665396",
+		"RemoteSourceImageLink": "http://account.blob.core.windows.net/vmdepot-images/TE-2014-11-03-debianwheezy-os-2014-11-03.vhd",
+		"MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-1-disk.vhd"
+	},
+	"DataVirtualHardDisks": [
+		{ "DiskLabel": "database-vm-1-data1", "Lun": "0", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-1-data1.vhd", "HostCaching": "ReadOnly", "LogicalDiskSizeInGB": "1023" },
+		{ "DiskLabel": "database-vm-1-data2", "Lun": "1", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-1-data2.vhd", "HostCaching": "ReadOnly", "LogicalDiskSizeInGB": "1023" },
+		{ "DiskLabel": "database-vm-1-xlog1", "Lun": "2", "MediaLink" : "http://account.blob.core.windows.net/vmdepot-images/database-vm-1-xlog1.vhd", "HostCaching": "ReadOnly", "LogicalDiskSizeInGB": "1023" } 
+	],
+	"ConfigurationSets": [
+		{
+			"ConfigurationSetType" : "LinuxProvisioningConfiguration",
+			"HostName" : "database-vm-1",
+			"UserName" : "ruth",
+			"UserPassword" : "Supersecret123!!",
+			"DisableSshPasswordAuthentication" : false
+		},
+		{
+			"ConfigurationSetType": "NetworkConfiguration",
+			"SubnetNames": [ "mysubnet" ],
+			"StaticVirtualNetworkIPAddress": "10.10.0.7",
+			"InputEndpoints": [],
+			"PublicIPs": [],
+			"StoredCertificateSettings": []
+		}
+	],
+	"ProvisionGuestAgent": "true",
+	"ResourceExtensionReferences": []
 }
 ```
-
-
-
-
-
-
-# Attach, mount and stripe data disks
-
-- Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-
-raid/)  in order to achieve higher I/O, given current limitation of 500 IOPS per data disk. 
-- One data disk for pg_xlog
-
-```console
-azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-datastripe-1.vhd
-azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-datastripe-2.vhd
-azure vm disk attach-new postgresvm1 1023 http://postgresdisks.blob.core.windows.com/vhds/postgresvm1-xlog.vhd
-```
-
-- Use 'cfdisk' on /dev/sdc and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
-- Use 'cfdisk' on /dev/sdd and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
-- Use 'cfdisk' on /dev/sde and create a primary partition of tyoe '8E' (LVM) for pg_xlog
-
-
 
 # Bring Linux up to date
 
@@ -118,6 +91,14 @@ $ aptitude install xfsprogs
 ```
 
 # Setup striping
+
+- Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-
+raid/)  in order to achieve higher I/O, given current limitation of 500 IOPS per data disk. 
+- One data disk for pg_xlog
+
+- Use 'cfdisk' on /dev/sdc and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
+- Use 'cfdisk' on /dev/sdd and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
+- Use 'cfdisk' on /dev/sde and create a primary partition of tyoe '8E' (LVM) for pg_xlog
 
 
 ```console
@@ -483,7 +464,7 @@ $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby follow
 
 # PostgreSQL admin stuff
 
-```
+```console
 $ createuser application_admin
 
 # -O owner
@@ -508,11 +489,11 @@ $ service postgresql start
 
 
 
-## Enable fiddler to sniff azure-cli 
+# Enable fiddler to sniff azure-cli 
 
 http://blogs.msdn.com/b/avkashchauhan/archive/2013/01/30/using-fiddler-to-decipher-windows-azure-powershell-or-rest-api-https-traffic.aspx
 
-```
+```console
 SET HTTP_PROXY=http://127.0.0.1:8888/
 SET HTTPS_PROXY=http://127.0.0.1:8888/
 SET HTTPPROXY=http://127.0.0.1:8888/
@@ -520,30 +501,29 @@ SET HTTPSPROXY=http://127.0.0.1:8888/
 SET NODE_TLS_REJECT_UNAUTHORIZED=0
 ```
 
+## CustomRules.js
 
-```
+```javascript
 static function OnBeforeRequest(oSession: Session) {
 	oSession["https-Client-Certificate"]= "C:\\Users\\chgeuer\\Desktop\\txxx.cer"; 
 ```
-
 
 # Questions:
 
 - For the block device driver for Azure Linux IaaS, what's supported or optimal? open_datasync, fdatasync (default on Linux), fsync, fsync_writethrough, open_sync. This is relevant to configure wal_sync_method
 - It seems that the guest OS does not see a detached data disk. An attached disk shows up in dmesg, while a detach process doesn't show up. When trying to open a formerly attached device (with cfdisk), the 
 
-# Unix vodoo :-)
+# Arbitrary Unix vodoo :-)
 
 ## See what's happening 
 
-```
+```console
 watch dmesg  \| tail -5
 ```
 
-
 # References
 
-- [Linux and Graceful Shutdowns](http://azure.microsoft.com/blog/2014/05/06/linux-and-graceful-shutdowns-2/)
-- [Create Virtual Machine Deployment REST API](http://msdn.microsoft.com/en-us/library/azure/jj157194.aspx)
 - [Azure command-line tool for Mac and Linux](http://azure.microsoft.com/en-us/documentation/articles/command-line-tools/)
-
+- [Exporting and Importing VM settings with the Azure Command-Line Tools](http://blogs.msdn.com/b/silverlining/archive/2012/10/25/exporting-and-importing-vm-settings-with-the-azure-command-line-tools.aspx)
+- [Create Virtual Machine Deployment REST API](http://msdn.microsoft.com/en-us/library/azure/jj157194.aspx)
+- [Linux and Graceful Shutdowns](http://azure.microsoft.com/blog/2014/05/06/linux-and-graceful-shutdowns-2/)
