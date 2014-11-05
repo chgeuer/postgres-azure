@@ -438,7 +438,13 @@ SELECT client_addr,
 
 Using the post-checkpoint variable `checkpointXlog`, you can now determine whether it is safe to kill the master. 
 
-checkpointXlog = '0/14047810'
+```
+var checkpointXlog = eval("SELECT pg_current_xlog_location();")
+
+checkpointXlog == '0/14047810'
+```
+
+Now we can determine the concrete replication lag:
 
 ```
 SELECT client_addr, 
@@ -450,12 +456,12 @@ SELECT client_addr,
 	from pg_stat_replication;
 ```
 
-- when the `pg_xlog_location_diff` column has non-positiv values, it's safe to shoot the master in the head. 
+- When the `pg_xlog_location_diff` column has non-positiv values, it's safe to shoot the master in the head. 
 - When we compare against `flush_location`, we not it's on the harddisk of the slave. 
 - When we compare against `replay_location`, we know it's in the actual database tables. 
 
 
-## On the slave which becomes master
+## On the slave which becomes master, run `repmgr standby promote`
 
 Use either `repmgr standby promote` (as a convenient wrapper) or naked `pg_ctl promote`.
 
@@ -464,7 +470,13 @@ $ sudo postgres    / su - prostgres
 $ repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby promote
 ```
 
+## On the other slave which has a new master, run `repmgr standby follow`
 
+
+```
+$ sudo postgres    / su - prostgres
+$ repmgr -f /var/lib/postgresql/repmgr.conf --verbose standby follow
+```
 
 
 
