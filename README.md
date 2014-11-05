@@ -90,7 +90,7 @@ Put replication configuration into dedicated file
 include_if_exists = 'replication.conf'
 ```
 
-# Attach and mount data disks
+# Attach, mount and stripe data disks
 
 - Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-
 raid/)  in order to achieve higher I/O, given current limitation of 500 IOPS per data disk. 
