@@ -7,6 +7,7 @@ Setting up PostgreSQL
 
 ```
 npm install azure-cli
+azure account clear
 azure account import "Windows Azure MSDN - Visual Studio Ultimate-11-4-2014-credentials.publishsettings"
 azure account set "internal"
 azure account list
@@ -21,7 +22,7 @@ azure account list
 
 ```
 azure vm list --json
-azure vm create DNS_PREFIX --community vmdepot-65-6-32 --virtual-network-name   -l "West Europe" USER_NAME [PASSWORD] [--ssh] [other_options]
+azure vm create DNS_PREFIX --community vmdepot-65-6-32 --virtual-network-name  -l "West Europe" USER_NAME [PASSWORD] [--ssh] [other_options]
 
 Create an A5 instance
 ```
@@ -163,5 +164,33 @@ ln -s /space/pgxlog/9.3              /space/pgdata/9.3/main/pg_xlog
 
 ```
 watch dmesg  \| tail -5
+```
+
+
+
+When master gets shutdown signal, 
+
+	1 change [pg_hba.conf](http://www.postgresql.org/docs/9.1/static/auth-pg-hba-conf.html) to reject new connections
+	2 "SELECT pg_reloadconf();" or "pg_ctl reload conf" or "kill -HUP" to enact configuration
+	3 [drop existing sessions](http://www.devopsderek.com/blog/2012/11/13/list-and-disconnect-postgresql-db-sessions/) "SELECT pg_terminate_backend( <procpid> )"
+
+
+```
+SELCT pg_reloadconf();
+SELECT pg_terminate_backend(pid)
+	FROM pg_stat_activity
+	WHERE username="webfrontend";
+CHECKPOINT
+```
+
+
+## Enable fiddler to sniff azure-cli 
+
+```
+SET HTTP_PROXY=http://127.0.0.1:8888/
+SET HTTPS_PROXY=http://127.0.0.1:8888/
+SET HTTPPROXY=http://127.0.0.1:8888/
+SET HTTPSPROXY=http://127.0.0.1:8888/
+SET NODE_TLS_REJECT_UNAUTHORIZED=0
 ```
 
