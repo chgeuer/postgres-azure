@@ -499,6 +499,59 @@ $ repmgr -f /var/lib/postgresql/repmgr.conf \
 	--verbose standby register
 ```
 
+# pgbouncer
+
+## /etc/pgbouncer/pgbouncer.ini contents
+
+Assumptions: 
+
+- pgbouncer service is on 10.10.0.20 (and similarly on other boxes), behind an internal load balancer
+- current master is 10.10.0.5
+- current slaves are 10.10.0.6 and 10.10.0.7
+- The application logic uses two different endpoints for updates (writes) and pure queries (reads).
+
+
+```ini
+[databases]
+myapp-write    = host=primary  port=5433
+myapp-readonly = port=5434
+
+[pgbouncer]
+listen_addr = 10.10.0.20, 127.0.0.1
+listen_port = 5432
+pool_mode = transaction
+max_client_conn = 500
+default_pool_size = 20
+```
+
+## Configure internal load balancer
+
+```powershell
+Add-AzureAccount
+Set-AzureSubscription -SubscriptionName "BizSpark Plus" -SubscriptionId "8eefc6f2-7216-4aef-8394-fce57df325a3"
+Select-AzureSubscription -SubscriptionName "BizSpark Plus" -Default
+
+Add-AzureInternalLoadBalancer -InternalLoadBalancerName pgbouncer -ServiceName fantasyweb -SubnetName fantasy -StaticVNetIPAddress 10.10.0.100
+
+Get-AzureVM -ServiceName fantasyweb -Name pooler1 | Add-AzureEndpoint -Name "pgbouncer" -LBSetName "pgbouncer" -Protocol tcp -LocalPort 5432 -PublicPort 5432 -ProbePort 5432 -ProbeProtocol tcp -ProbeIntervalInSeconds 10 -InternalLoadBalancerName pgbouncer | Update-AzureVM
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -521,15 +574,15 @@ $ vim  /etc/postgresql/9.3/main/pg_hba.conf
 % pgbench -s 10 -i -U application_admin my_database
 
 $ service postgresql start
-
 ```
+
+
+
+
 
 ## Determine whether you're on master or slave
 
 `SELECT pg_is_in_recovery()` returns `false` on the master (who is not in recovery), and `true` for slaves (who are in constant recovery mode).
-
-
-
 
 # Enable fiddler to sniff azure-cli 
 
@@ -569,3 +622,4 @@ watch dmesg  \| tail -5
 - [Exporting and Importing VM settings with the Azure Command-Line Tools](http://blogs.msdn.com/b/silverlining/archive/2012/10/25/exporting-and-importing-vm-settings-with-the-azure-command-line-tools.aspx)
 - [Create Virtual Machine Deployment REST API](http://msdn.microsoft.com/en-us/library/azure/jj157194.aspx)
 - [Linux and Graceful Shutdowns](http://azure.microsoft.com/blog/2014/05/06/linux-and-graceful-shutdowns-2/)
+- [Internal Load Balancing](http://azure.microsoft.com/blog/2014/05/20/internal-load-balancing/)
