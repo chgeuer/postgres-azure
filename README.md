@@ -38,6 +38,8 @@ azure vm create-from cloudservicename machine.json --connect --verbose --json
 
 ## machine.json
 
+See the [REST API](http://msdn.microsoft.com/en-us/library/azure/jj157194.aspx) for details. 
+
 ```JSON
 {
   "RoleName": "database-vm",
