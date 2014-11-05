@@ -264,31 +264,34 @@ Allows slaves to already answer to read queries.
 hot_standby=on
 ```
 
-# Add postgres user with replication priviledge
+# Add postgres user with replication priviledge and superuser 
 
 ```
 # username "repl" 
 # -P = get password from <stdin>
+# -S = super user, in order to run repmgr (otherwise, error "permission denied for language C" comes)
 
 $ su postgres
-$ createuser --replication repl -P 
+$ createuser --replication -P -S  repl 
 ```
 
 ## Edit /etc/postgresql/9.3/main/pg_hba.conf
 
-Add the following line to allow subnet 10.10.0.0/16 to do replication with user ID "repl"
+As postgres user, add the following line to allow subnet 10.10.0.0/16 to do replication with user ID "repl"
 
 ```
+host   all            all     10.10.0.0/16    md5
 host   replication    repl    10.10.0.0/16    md5
 ```
 
 ## Configure /var/lib/postgresql/repmgr.conf on all hosts. 
 
-These settings are written to the DB, and visible in the cluster, so IPs must be real ones . 
+As postgres user, These settings are written to the DB, and visible in the cluster, so IPs must be real ones . 
 
 ```
 All nodes have the same cluster name
 cluster=my_application_cluster
+pg_bindir='/usr/lib/postgres/9.3/bin'
 
 # This must unique be for each respective node
 node=1             
@@ -296,9 +299,28 @@ node_name=postgresvm1
 conninfo='host=10.10.0.7 user=repl dbname=repmgr'
 ```
 
-## Create 
 
+## Setup repmgr internals on master node.  
 
+### vim /var/lib/postgresql/.pgpass
+
+```
+# hostname:port:database:username:password
+*:*:repmgr:repl:supersecret123.-
+```
+
+Permissions
+
+```
+$ chmod 0600  /var/lib/postgresql/.pgpass
+```
+
+### Setup repmgr
+
+```
+$ sudo postgres
+$ repmgr -f /var/lib/postgresql/repmgr.conf --verbose master register
+```
 
 
 
