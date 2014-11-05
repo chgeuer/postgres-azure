@@ -133,7 +133,7 @@ hot_standby=on
 # Add postgres user with replication priviledge
 
 ```
-# username repl 
+# username "repl" 
 # -P = get password from <stdin>
 
 $ su postgres
@@ -142,11 +142,13 @@ $ createuser --replication repl -P
 
 # pg_hba.conf
 
-Add the following line to allow subnet to do replication
+Add the following line to allow subnet 10.10.0.0/16 to do replication with user ID "repl"
 
 ```
-host replication repl 10.10.0.0/16 md5
+host   replication    repl    10.10.0.0/16    md5
 ```
+
+
 
 
 
@@ -307,18 +309,21 @@ azure vm create-from cloudservicename machine.json --connect --verbose --json
 # PostgreSQL admin stuff
 
 ```
-createuser application_admin
+$ createuser application_admin
 
 # -O owner
-createdb -O application_admin my_database
+$ createdb -O application_admin my_database
 
 # Add application_admin to administrators in /etc/postgresql/9.3/main/pg_hba.conf
-vim  /etc/postgresql/9.3/main/pg_hba.conf
+$ vim  /etc/postgresql/9.3/main/pg_hba.conf
 
 # -s n scaling factor
 # -i initialization
 # -U username
-pgbench -s 10 -i -U application_admin my_database
+% pgbench -s 10 -i -U application_admin my_database
+
+$ service postgresql start
+
 ```
 
 
