@@ -383,7 +383,7 @@ When master gets shutdown signal,
 3. Instruct PostgreSQL to write (flush) remaining transaction log (WAL records) to tables by creating a checkpoint 
 
 ```
-SELCT pg_reloadconf();
+SELECT pg_reloadconf();
 SELECT pg_terminate_backend(pid)
 	FROM pg_stat_activity
 	WHERE username="webfrontend";
@@ -392,11 +392,14 @@ CHECKPOINT
 
 Determine xlog location of the current xlog position, something after the previously made checkpoint. Here, we can be sure that after the checkpoint, only non-relevant changes (like vacuuming) happened to the tables. 
 
+Now fetch (once) after the checkpoint operation on the master the XLOG location, and store it in a variable `checkpointXlog`:  
+
+
 ```
 SELECT pg_current_xlog_location();
 ```
 
-Determine replication lag 
+Determine replication lag for the slaves. When the `pg_xloc_location_diff(...)` function call returns 0, all slaves have catched up. Running below code gives a current view: 
 
 ```
 SELECT client_addr, 
@@ -408,6 +411,17 @@ SELECT client_addr,
 	from pg_stat_replication;
 ```
 
+Using the post-checkpoint variable `checkpointXlog`, you can now determine whether it is safe to kill the master: 
+
+```
+SELECT client_addr, 
+	replay_location, 
+	checkpointXlog, 
+	pg_xloc_location_diff(
+		checkpointXlog, 
+		replay_location) 
+	from pg_stat_replication;
+```
 
 
 ## On the slave which becomes master
