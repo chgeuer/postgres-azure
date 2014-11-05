@@ -4,6 +4,7 @@ Setting up PostgreSQL
 
 <script type="text/javascript">
 setTimeout(function(){
+	console.log("Reload");
    window.location.reload(1);
 }, 5000);
 </script>
