@@ -1,6 +1,10 @@
 Setting up PostgreSQL on Microsoft Azure Virtual Machines (IaaS)
 ================================================================
 
+# Architecture
+
+<img src="WP_20141105_004.jpg" />
+
 # Login to Azure
 
 - Download publish settings at https://manage.windowsazure.com/publishsettings/index?client=xplat 
