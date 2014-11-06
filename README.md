@@ -730,9 +730,11 @@ watch dmesg  \| tail -5
 	- [Azure - Create Virtual Machine Deployment REST API](http://msdn.microsoft.com/en-us/library/azure/jj157194.aspx)
 	- [Azure - Linux and Graceful Shutdowns](http://azure.microsoft.com/blog/2014/05/06/linux-and-graceful-shutdowns-2/)
 	- [Azure - Internal Load Balancing](http://azure.microsoft.com/blog/2014/05/20/internal-load-balancing/)
+	- [Azure - Load balancing highly available Linux services: OpenLDAP and MySQL](http://channel9.msdn.com/Blogs/Open/Load-balancing-highly-available-Linux-services-on-Windows-Azure-OpenLDAP-and-MySQL)
 - Pacemaker & Corosync
 	- [An A-Z guide to Pacemaker's Configuration Options](http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html)
 	- [Clusters from Scratch - Creating Active/Passive and Active/Active Clusters on Fedora](http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Clusters_from_Scratch/index.html)
+	- [corosync wiki](https://github.com/corosync/corosync/wiki)
 - Ruby
 	- [Ruby and PostgreSQL](https://bitbucket.org/ged/ruby-pg/wiki/Home)
 	- [Ruby and Azure Service Bus](https://github.com/Azure/azure-content/blob/master/articles/service-bus-ruby-how-to-use-topics-subscriptions.md)
@@ -740,8 +742,6 @@ watch dmesg  \| tail -5
 [pacemaker-resource-multi-state]: http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html#s-resource-multistate
 [pacemaker-ocf-operations]: http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html#_actions
 [pacemaker-ocf-return-codes]: http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html/Pacemaker_Explained/s-ocf-return-codes.html
-
-
 
 # Acronyms
 
