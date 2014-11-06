@@ -588,8 +588,13 @@ $ service postgresql start
 	- Node should become slave of an existing master:
 	- Current master VM gets rebootet / shutdown: 
 	- Previous slave should become master: "start MASTER"
+- The [OCF return codes][pacemaker-ocf-return-codes] must be returned for promote/demote operations
 
-## Pseudo code
+
+
+
+
+## Pseudo code for "the script"
 
 ```
 // http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html#_multi_state_resource_agent_requirements
@@ -719,18 +724,24 @@ watch dmesg  \| tail -5
 
 # References
 
-- [Azure command-line tool for Mac and Linux](http://azure.microsoft.com/en-us/documentation/articles/command-line-tools/)
-- [Exporting and Importing VM settings with the Azure Command-Line Tools](http://blogs.msdn.com/b/silverlining/archive/2012/10/25/exporting-and-importing-vm-settings-with-the-azure-command-line-tools.aspx)
-- [Create Virtual Machine Deployment REST API](http://msdn.microsoft.com/en-us/library/azure/jj157194.aspx)
-- [Linux and Graceful Shutdowns](http://azure.microsoft.com/blog/2014/05/06/linux-and-graceful-shutdowns-2/)
-- [Internal Load Balancing](http://azure.microsoft.com/blog/2014/05/20/internal-load-balancing/)
-- [How to Use Service Bus Topics/Subscriptions from Ruby](https://github.com/Azure/azure-content/blob/master/articles/service-bus-ruby-how-to-use-topics-subscriptions.md)
+- Azure
+	- [Azure - azure-cli / node.js command-line tool for Mac and Linux](http://azure.microsoft.com/en-us/documentation/articles/command-line-tools/)
+	- [Azure - Exporting and Importing VM settings with the Azure Command-Line Tools](http://blogs.msdn.com/b/silverlining/archive/2012/10/25/exporting-and-importing-vm-settings-with-the-azure-command-line-tools.aspx)
+	- [Azure - Create Virtual Machine Deployment REST API](http://msdn.microsoft.com/en-us/library/azure/jj157194.aspx)
+	- [Azure - Linux and Graceful Shutdowns](http://azure.microsoft.com/blog/2014/05/06/linux-and-graceful-shutdowns-2/)
+	- [Azure - Internal Load Balancing](http://azure.microsoft.com/blog/2014/05/20/internal-load-balancing/)
 - Pacemaker & Corosync
 	- [An A-Z guide to Pacemaker's Configuration Options](http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html)
 	- [Clusters from Scratch - Creating Active/Passive and Active/Active Clusters on Fedora](http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Clusters_from_Scratch/index.html)
+- Ruby
+	- [Ruby and PostgreSQL](https://bitbucket.org/ged/ruby-pg/wiki/Home)
+	- [Ruby and Azure Service Bus](https://github.com/Azure/azure-content/blob/master/articles/service-bus-ruby-how-to-use-topics-subscriptions.md)
 
 [pacemaker-resource-multi-state]: http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html#s-resource-multistate
 [pacemaker-ocf-operations]: http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html#_actions
+[pacemaker-ocf-return-codes]: http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html/Pacemaker_Explained/s-ocf-return-codes.html
+
+
 
 # Acronyms
 
