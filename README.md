@@ -577,45 +577,88 @@ $ service postgresql start
 
 # pg_control.rb
 
+Operations: 
+
+- start
+- stop
+- status
+
+
+
+
+
 ```
+var isRunningAsSlave = `SELECT pg_is_in_recovery()`;
+var isRunningAsMaster = ! isRunningAsSlave;
 
-if (stop) {
-	var isSlave = `SELECT pg_is_in_recovery()`;
-	var isMaster = ! isSlave;
+if (stop && isRunningAsMaster) {
+	// refuse new connections
+	modify("pg_hba.conf") && sqleval("localhost", "SELECT pg_reloadconf();");
+
+	// drop existing connections
+	sqleval("localhost", "SELECT pg_terminate_backend(pid) \
+		FROM pg_stat_activity \
+		WHERE usename='webfrontend';");
+
+	// create checkoint 
+	sqleval("localhost", "CHECKPOINT;");
+
+	// determine current location
+	var flush_location = sqleval("localhost", "SELECT pg_current_xlog_location();");
+
+	string diffStatement = "pg_xlog_location_diff(pg_current_xloc_location(), " + flush_location + ") from pg_stat_replication;"
+	string determineReplicationLag = "SELECT client_addr, pg_current_xlog_location()," + diffStatement;
+
+	bool allSlavesSynced = false;
+	while (!allSlavesSynced) {
+		bool foundUnsyncedSlave = false;
+		var replicationStates = sqleval("localhost", determineReplicationLag);
+		foreach (var replicationState in replicationStates) {
+			(client,current,diff) = replicationState;
+			if (diff > 0) {
+				foundUnsyncedSlave = true;
+			}
+		}			
+		allSlavesSynced = !foundUnsyncedSlave;
+	}
+
+	shutdownPostgreSQL();
+	// remove current node from master ILB
+	configureInternalLoadBalancer("ilb_master", "remove `uname -n`");
+
+	return 0; // machine can shut down
+}
+
+
+if (start && isMaster) {
+	var isMaster = via CRM;
 	if (isMaster) {
-		// refuse new connections
-		modify("pg_hba.conf") && sqleval("localhost", "SELECT pg_reloadconf();");
-
-		// drop existing connections
-		sqleval("localhost", "SELECT pg_terminate_backend(pid) \
-			FROM pg_stat_activity \
-			WHERE usename='webfrontend';");
-
-		// create checkoint 
-		sqleval("localhost", "CHECKPOINT;");
-
-		// determine current location
-		var flush_location = sqleval("localhost", "SELECT pg_current_xlog_location();");
-
-		string diffStatement = "pg_xlog_location_diff(pg_current_xloc_location(), " + flush_location + ") from pg_stat_replication;"
-		string determineReplicationLag = "SELECT client_addr, pg_current_xlog_location()," + diffStatement;
-
-		bool allSlavesSynced = false;
-		while (!allSlavesSynced) {
-			bool foundUnsyncedSlave = false;
-			var replicationStates = sqleval("localhost", determineReplicationLag);
-			foreach (var replicationState in replicationStates) {
-				(client,current,diff) = replicationState;
-				if (diff > 0) {
-					foundUnsyncedSlave = true;
-				}
-			}			
-			allSlavesSynced = !foundUnsyncedSlave;
-		}
+		// add current node to master ILB
+		configureInternalLoadBalancer("ilb_master", "add `uname -n`");
 	}
 }
 
 ```
+
+
+
+```
+fantasydb1 shutdown 
+-> crm standby on (automatisch durch shutdown)
+
+
+fantasydb2 MASTER (recieved clean shutdown from crm fantasydb1)
+-> tecontrolpg.rb start MASTER
+-> rpmgr promote -> leave recovery mode, timeline switch happened
+-> add to internal MASTER LB and remove from SLAVE LB
+-> assure pg_hba.conf is accepting connections
+-> local test write query
+
+fantasydb3 SLAVE
+-> follow new master (rpmgr standby follow)
+-> local test read query
+```
+
 
 
 
@@ -668,3 +711,6 @@ watch dmesg  \| tail -5
 - [Linux and Graceful Shutdowns](http://azure.microsoft.com/blog/2014/05/06/linux-and-graceful-shutdowns-2/)
 - [Internal Load Balancing](http://azure.microsoft.com/blog/2014/05/20/internal-load-balancing/)
 - [How to Use Service Bus Topics/Subscriptions from Ruby](https://github.com/Azure/azure-content/blob/master/articles/service-bus-ruby-how-to-use-topics-subscriptions.md)
+- Pacemaker & Corosync
+	- [An A-Z guide to Pacemaker's Configuration Options](http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html)
+	- [Clusters from Scratch - Creating Active/Passive and Active/Active Clusters on Fedora](http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Clusters_from_Scratch/index.html)
