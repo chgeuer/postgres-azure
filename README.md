@@ -577,18 +577,31 @@ $ service postgresql start
 
 # pg_control.rb
 
-Operations: 
+- A "clone" is a resource that gets active on multiple nodes. There are also stateful clones. 
+- It seems PostgreSQL is a "[multi-state resource][pacemaker-resource-multi-state]" are clones which can have multiple modes. 
+- [OCF Operations][pacemaker-ocf-operations] are promote / demote / notify
+- CRM resources define three nodes. One resource per node. One master per cluster. 
+- The "script" which needs to be developed is an "OCF resource agent". 
+	- This script must implement four operations: start / stop / monitor / notify 
+- Possible commands from CRM which hit the script:
+	- Node should be a completely new master: this is never the case
+	- Node should become slave of an existing master:
+	- Current master VM gets rebootet / shutdown: 
+	- Previous slave should become master: "start MASTER"
 
-- start
-- stop
-- status
-
-
-
-
+## Pseudo code
 
 ```
-var isRunningAsSlave = `SELECT pg_is_in_recovery()`;
+// http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html#_multi_state_resource_agent_requirements
+if (monitor) {
+	OCF_NOT_RUNNING    = stopped
+	OCF_SUCCESS        = Running (Slave)
+	OCF_RUNNING_MASTER = Running (Master)
+	OCF_FAILED-master  = Failed (Master)
+	Other              = Failed (Slave)
+}
+
+var isRunningAsSlave = sqleval("localhost", "SELECT pg_is_in_recovery()");
 var isRunningAsMaster = ! isRunningAsSlave;
 
 if (stop && isRunningAsMaster) {
@@ -639,6 +652,7 @@ if (start && isMaster) {
 }
 
 ```
+
 
 
 
@@ -714,3 +728,11 @@ watch dmesg  \| tail -5
 - Pacemaker & Corosync
 	- [An A-Z guide to Pacemaker's Configuration Options](http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html)
 	- [Clusters from Scratch - Creating Active/Passive and Active/Active Clusters on Fedora](http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Clusters_from_Scratch/index.html)
+
+[pacemaker-resource-multi-state]: http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html#s-resource-multistate
+[pacemaker-ocf-operations]: http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html#_actions
+
+# Acronyms
+
+OCF open cluster framework (from Pacemaker)
+CRM cluster resource manager (from Pacemaker)
