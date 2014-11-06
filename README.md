@@ -598,6 +598,8 @@ $ service postgresql start
 
 ## Pseudo code for "the script"
 
+
+
 ```
 // http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html#_multi_state_resource_agent_requirements
 if (monitor) {
@@ -613,7 +615,7 @@ var isRunningAsMaster = ! isRunningAsSlave;
 
 if (stop && isRunningAsMaster) {
 	// refuse new connections
-	modify("pg_hba.conf") && sqleval("localhost", "SELECT pg_reloadconf();");
+	modify("pg_hba.conf", remove "all/all") && sqleval("localhost", "SELECT pg_reloadconf();");
 
 	// drop existing connections
 	sqleval("localhost", "SELECT pg_terminate_backend(pid) \
@@ -721,6 +723,14 @@ static function OnBeforeRequest(oSession: Session) {
 watch dmesg  \| tail -5
 ```
 
+# Next steps
+
+- Understand corosync model and how it should be used for the PostgreSQL cluster (Felix)
+- Scripting/API access to the internal load balancer (Christian)
+- 
+
+
+
 # References
 
 - Azure
@@ -734,6 +744,7 @@ watch dmesg  \| tail -5
 	- [An A-Z guide to Pacemaker's Configuration Options](http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html)
 	- [Clusters from Scratch - Creating Active/Passive and Active/Active Clusters on Fedora](http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Clusters_from_Scratch/index.html)
 	- [corosync wiki](https://github.com/corosync/corosync/wiki)
+	- [OCF resource agent for pgsql](https://github.com/ClusterLabs/resource-agents/blob/master/heartbeat/pgsql)
 - Ruby
 	- [Ruby and PostgreSQL](https://bitbucket.org/ged/ruby-pg/wiki/Home)
 	- [Ruby and Azure Service Bus](https://github.com/Azure/azure-content/blob/master/articles/service-bus-ruby-how-to-use-topics-subscriptions.md)
