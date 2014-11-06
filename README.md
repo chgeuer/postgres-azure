@@ -81,13 +81,10 @@ See the [REST API](http://msdn.microsoft.com/en-us/library/azure/jj157194.aspx) 
 # Bring Linux up to date
 
 ```console
-$ aptitude update
 $ aptitude update && aptitude upgrade
 $ aptitude install rsync
-$ aptitude install mdadm
-$ aptitude install lvm2
-$ aptitude install xfsprogs
-
+$ aptitude install mdadm lvm2 xfsprogs
+$ aptitude install pacemaker corosync resource-agents
 ```
 
 # Setup striping
@@ -98,7 +95,6 @@ $ aptitude install xfsprogs
 - Use 'cfdisk' on /dev/sdc and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
 - Use 'cfdisk' on /dev/sdd and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
 - Use 'cfdisk' on /dev/sde and create a primary partition of tyoe '8E' (LVM) for pg_xlog
-
 
 ```console
 $ mdadm --create /dev/md0 --level 0 --raid-devices 2 /dev/sdc1 /dev/sdd1
@@ -583,13 +579,14 @@ $ service postgresql start
 - CRM resources define three nodes. One resource per node. One master per cluster. 
 - The "script" which needs to be developed is an "OCF resource agent". 
 	- This script must implement four operations: start / stop / monitor / notify 
+	- A sample script can be seen in `/usr/lib/ocf/resource.d/heartbeat/*`
 - Possible commands from CRM which hit the script:
 	- Node should be a completely new master: this is never the case
 	- Node should become slave of an existing master:
-	- Current master VM gets rebootet / shutdown: 
+	- Current master VM gets rebootet or shutdown: 
 	- Previous slave should become master: "start MASTER"
-- The [OCF return codes][pacemaker-ocf-return-codes] must be returned for promote/demote operations
-
+- The [OCF return codes][pacemaker-ocf-return-codes] must be returned for operations
+	- start, stop, monitor, validate-all, promote, demote, notify, meta-data
 
 
 
@@ -599,7 +596,7 @@ $ service postgresql start
 ```
 // http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html#_multi_state_resource_agent_requirements
 if (monitor) {
-	OCF_NOT_RUNNING    = stopped
+	OCF_NOT_RUNNING    = Stopped
 	OCF_SUCCESS        = Running (Slave)
 	OCF_RUNNING_MASTER = Running (Master)
 	OCF_FAILED-master  = Failed (Master)
@@ -659,21 +656,18 @@ if (start && isMaster) {
 ```
 
 
-
-
 ```
-fantasydb1 shutdown 
+database-vm1 shutdown 
 -> crm standby on (automatisch durch shutdown)
 
-
-fantasydb2 MASTER (recieved clean shutdown from crm fantasydb1)
+database-vm2 MASTER (received clean shutdown from crm database-vm1)
 -> tecontrolpg.rb start MASTER
 -> rpmgr promote -> leave recovery mode, timeline switch happened
 -> add to internal MASTER LB and remove from SLAVE LB
 -> assure pg_hba.conf is accepting connections
 -> local test write query
 
-fantasydb3 SLAVE
+database-vm3 SLAVE
 -> follow new master (rpmgr standby follow)
 -> local test read query
 ```
@@ -745,5 +739,8 @@ watch dmesg  \| tail -5
 
 # Acronyms
 
-OCF open cluster framework (from Pacemaker)
-CRM cluster resource manager (from Pacemaker)
+```
+OCF    - open cluster framework (from Pacemaker)
+CRM    - cluster resource manager (from Pacemaker)
+linbit - company who wrote 
+```
