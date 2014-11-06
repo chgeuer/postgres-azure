@@ -726,8 +726,8 @@ watch dmesg  \| tail -5
 # Next steps
 
 - Understand corosync model and how it should be used for the PostgreSQL cluster (Felix)
-- Scripting/API access to the internal load balancer (Christian)
-- 
+- Extend the [OCF resource agent for pgsql](https://github.com/ClusterLabs/resource-agents/blob/master/heartbeat/pgsql) to support multiple slaves, because then the remaining slave needs to follow a new master. The current script only has one master and one slave. (Felix)
+- Scripting/API access to reconfiguring the internal load balancer (Christian)
 
 
 
@@ -740,6 +740,8 @@ watch dmesg  \| tail -5
 	- [Azure - Linux and Graceful Shutdowns](http://azure.microsoft.com/blog/2014/05/06/linux-and-graceful-shutdowns-2/)
 	- [Azure - Internal Load Balancing](http://azure.microsoft.com/blog/2014/05/20/internal-load-balancing/)
 	- [Azure - Load balancing highly available Linux services: OpenLDAP and MySQL](http://channel9.msdn.com/Blogs/Open/Load-balancing-highly-available-Linux-services-on-Windows-Azure-OpenLDAP-and-MySQL)
+	- [Using load-balanced sets to clusterize MySQL on Linux](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-mysql-cluster/)
+	- [Azure STONITH Provider on GitHub](https://github.com/bureado/aztonith/blob/master/azure-vm)
 - Pacemaker & Corosync
 	- [An A-Z guide to Pacemaker's Configuration Options](http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html)
 	- [Clusters from Scratch - Creating Active/Passive and Active/Active Clusters on Fedora](http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Clusters_from_Scratch/index.html)
