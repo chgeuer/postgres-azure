@@ -576,6 +576,47 @@ $ vim  /etc/postgresql/9.3/main/pg_hba.conf
 $ service postgresql start
 ```
 
+# pg_control.rb
+
+```
+
+if (stop) {
+	var isSlave = `SELECT pg_is_in_recovery()`;
+	var isMaster = ! isSlave;
+	if (isMaster) {
+		// refuse new connections
+		modify("pg_hba.conf") && sqleval("localhost", "SELECT pg_reloadconf();");
+
+		// drop existing connections
+		sqleval("localhost", "SELECT pg_terminate_backend(pid) \
+			FROM pg_stat_activity \
+			WHERE usename='webfrontend';");
+
+		// create checkoint 
+		sqleval("localhost", "CHECKPOINT;");
+
+		// determine current location
+		var flush_location = sqleval("localhost", "SELECT pg_current_xlog_location();");
+
+		string determineReplicationLag = "SELECT client_addr, " 
+			+ flush_location 
+			+ ", pg_current_xlog_location(), pg_xlog_location_diff(pg_current_xloc_location(), " +
+			+ flush_location 
+        	+ ") from pg_stat_replication;";
+
+		bool allSlavesSynced = false;
+		while (!allSlavesSynced) {
+			int lag = sqleval("localhost", determineReplicationLag);
+			allSlavesSynced = lag <= 0;
+		}
+	}
+}
+
+```
+
+
+
+
 
 
 
@@ -623,3 +664,4 @@ watch dmesg  \| tail -5
 - [Create Virtual Machine Deployment REST API](http://msdn.microsoft.com/en-us/library/azure/jj157194.aspx)
 - [Linux and Graceful Shutdowns](http://azure.microsoft.com/blog/2014/05/06/linux-and-graceful-shutdowns-2/)
 - [Internal Load Balancing](http://azure.microsoft.com/blog/2014/05/20/internal-load-balancing/)
+- [How to Use Service Bus Topics/Subscriptions from Ruby](https://github.com/Azure/azure-content/blob/master/articles/service-bus-ruby-how-to-use-topics-subscriptions.md)
