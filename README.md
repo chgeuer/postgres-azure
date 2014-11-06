@@ -597,16 +597,20 @@ if (stop) {
 		// determine current location
 		var flush_location = sqleval("localhost", "SELECT pg_current_xlog_location();");
 
-		string determineReplicationLag = "SELECT client_addr, " 
-			+ flush_location 
-			+ ", pg_current_xlog_location(), pg_xlog_location_diff(pg_current_xloc_location(), " +
-			+ flush_location 
-        	+ ") from pg_stat_replication;";
+		string diffStatement = "pg_xlog_location_diff(pg_current_xloc_location(), " + flush_location + ") from pg_stat_replication;"
+		string determineReplicationLag = "SELECT client_addr, pg_current_xlog_location()," + diffStatement;
 
 		bool allSlavesSynced = false;
 		while (!allSlavesSynced) {
-			int lag = sqleval("localhost", determineReplicationLag);
-			allSlavesSynced = lag <= 0;
+			bool foundUnsyncedSlave = false;
+			var replicationStates = sqleval("localhost", determineReplicationLag);
+			foreach (var replicationState in replicationStates) {
+				(client,current,diff) = replicationState;
+				if (diff > 0) {
+					foundUnsyncedSlave = true;
+				}
+			}			
+			allSlavesSynced = !foundUnsyncedSlave;
 		}
 	}
 }
