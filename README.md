@@ -756,6 +756,7 @@ watch dmesg  \| tail -5
 [pacemaker-resource-multi-state]: http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html#s-resource-multistate
 [pacemaker-ocf-operations]: http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html-single/Pacemaker_Explained/index.html#_actions
 [pacemaker-ocf-return-codes]: http://clusterlabs.org/doc/en-US/Pacemaker/1.1-pcs/html/Pacemaker_Explained/s-ocf-return-codes.html
+[stonith]: http://ourobengr.com/ha/
 
 # Acronyms
 
