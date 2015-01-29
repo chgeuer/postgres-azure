@@ -9,6 +9,8 @@ Setting up PostgreSQL on Microsoft Azure Virtual Machines (IaaS)
 
 # Login to Azure
 
+You'll need an Azure subscription. You can get a [free trial](http://www.windowsazure.com/en-us/pricing/free-trial/?WT.mc_id=AA4C1C935).
+
 - Download publish settings at https://manage.windowsazure.com/publishsettings/index?client=xplat 
 
 ```console
@@ -19,9 +21,13 @@ azure account set "internal"
 azure account list
 ```
 
-# Get the image
+For more detailed instructions on setting up the Azure CLI tools see https://vmdepot.msopentech.com/help/deploy/cli.html/
 
-- Debian Wheezy Image from https://vmdepot.msopentech.com/Vhd/Show?vhdId=65&version=400
+# Create a base Linux image
+
+We'll use a Debian image from VM Depot, find the most recent with [this search](https://vmdepot.msopentech.com/List/Index?sort=Date&search=platform%3Adebian)
+
+There are a number of ways to deploy the image, below is an outline of how to do it with the command line tools. VM Depot has documentation on [other methods](https://vmdepot.msopentech.com/help/deploy.html/).
 
 ```console
 azure vm list --json
@@ -29,6 +35,8 @@ azure vm create DNS_PREFIX --community vmdepot-65-6-32 --virtual-network-name  -
 
 Create an A5 instance
 ```
+
+It would be great if people [published a Postgres image](https://vmdepot.msopentech.com/help/contribute.html/) after following this tutorial (it doesn't cost anything). That way those who follow will not have to do this initial configuration work.
 
 # Command line for creating a PostgreSQL machine
 
