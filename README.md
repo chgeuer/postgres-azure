@@ -106,9 +106,48 @@ $ aptitude install pacemaker corosync resource-agents
 - Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-raid/)  in order to achieve higher I/O, given current limitation of 500 IOPS per data disk. 
 - One data disk for pg_xlog
 
-- Use 'cfdisk' on /dev/sdc and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
-- Use 'cfdisk' on /dev/sdd and create a primary partition of tyoe 'FD' (RAID autodetect) for RAID for pg_data
-- Use 'cfdisk' on /dev/sde and create a primary partition of tyoe '8E' (LVM) for pg_xlog
+- Use 'cfdisk' on /dev/sdc and create a primary partition of type 'FD' (RAID autodetect) for RAID for pg_data
+- Use 'cfdisk' on /dev/sdd and create a primary partition of type 'FD' (RAID autodetect) for RAID for pg_data
+- Use 'cfdisk' on /dev/sde and create a primary partition of type '8E' (LVM) for pg_xlog
+
+```console
+# Standard fdisk partition
+fdiskStdin=$(cat <<'END_HEREDOC'
+n
+p
+1
+
+
+w
+END_HEREDOC
+)
+
+# cfdisk command for 'FD' (RAID autodetect) for RAID
+cfdiskStdinFD=$(cat <<'END_HEREDOC'
+np
+
+tFD
+Wyes
+q
+END_HEREDOC
+)
+
+# cfdisk command for '8E' (LVM)
+cfdiskStdin8E=$(cat <<'END_HEREDOC'
+np
+
+t8E
+Wyes
+q
+END_HEREDOC
+)
+
+echo "$cfdiskStdinFD" | cfdisk /dev/sdc
+echo "$cfdiskStdinFD" | cfdisk /dev/sdd
+echo "$cfdiskStdin8E" | cfdisk /dev/sde
+```
+
+
 
 ```console
 $ mdadm --create /dev/md0 --level 0 --raid-devices 2 /dev/sdc1 /dev/sdd1
