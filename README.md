@@ -106,6 +106,9 @@ $ aptitude install pacemaker corosync resource-agents
 - Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-raid/)  in order to achieve higher I/O, given current limitation of 500 IOPS per data disk. 
 - One data disk for pg_xlog
 
+
+## A couple of inputs for fdisk
+
 ```console
 # Standard fdisk partition
 fdiskStdin=$(cat <<'END_HEREDOC'
@@ -137,7 +140,11 @@ Wyes
 q
 END_HEREDOC
 )
+```
 
+## cfdisk and amalgamate the disks 
+
+```console
 # Use 'cfdisk' on /dev/sdc and create a primary partition of type 'FD' (RAID autodetect) for RAID for pg_data
 echo "$cfdiskStdinFD" | cfdisk /dev/sdc
 
