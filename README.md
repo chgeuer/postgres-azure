@@ -106,10 +106,6 @@ $ aptitude install pacemaker corosync resource-agents
 - Multiple data disks in a [RAID](http://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-configure-raid/)  in order to achieve higher I/O, given current limitation of 500 IOPS per data disk. 
 - One data disk for pg_xlog
 
-- Use 'cfdisk' on /dev/sdc and create a primary partition of type 'FD' (RAID autodetect) for RAID for pg_data
-- Use 'cfdisk' on /dev/sdd and create a primary partition of type 'FD' (RAID autodetect) for RAID for pg_data
-- Use 'cfdisk' on /dev/sde and create a primary partition of type '8E' (LVM) for pg_xlog
-
 ```console
 # Standard fdisk partition
 fdiskStdin=$(cat <<'END_HEREDOC'
@@ -142,33 +138,36 @@ q
 END_HEREDOC
 )
 
+# Use 'cfdisk' on /dev/sdc and create a primary partition of type 'FD' (RAID autodetect) for RAID for pg_data
 echo "$cfdiskStdinFD" | cfdisk /dev/sdc
+
+# Use 'cfdisk' on /dev/sdd and create a primary partition of type 'FD' (RAID autodetect) for RAID for pg_data
 echo "$cfdiskStdinFD" | cfdisk /dev/sdd
+
+# Use 'cfdisk' on /dev/sde and create a primary partition of type '8E' (LVM) for pg_xlog
 echo "$cfdiskStdin8E" | cfdisk /dev/sde
-```
 
+#################################
 
-
-```console
-$ mdadm --create /dev/md0 --level 0 --raid-devices 2 /dev/sdc1 /dev/sdd1
+mdadm --create /dev/md0 --level 0 --raid-devices 2 /dev/sdc1 /dev/sdd1
 
 # create physical volume
-$ pvcreate /dev/md0
+pvcreate /dev/md0
 
 # create volume group
-$ vgcreate data /dev/md0
+vgcreate data /dev/md0
 
 # create logical volume 
-$ lvcreate -n pgdata -l100%FREE data
+lvcreate -n pgdata -l100%FREE data
 
 # show volume group information
-$ vgdisplay
+vgdisplay
 
 # Now 
-$ ls -als /dev/data/pgdata
+ls -als /dev/data/pgdata
 
 # mkfs -t xfs /dev/data/pgdata
-$ mkfs.xfs /dev/data/pgdata
+mkfs.xfs /dev/data/pgdata
 ```
 
 Setup automount
