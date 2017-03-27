@@ -67,7 +67,16 @@
             },
             "instanceCount": {
                 "postgresql": 2,
+                "postgresqlDataDiskCount": 3,
                 "zookeeper": 2
+            },
+            "vm": {
+                "postgresql": {
+                    "publisher": "Canonical",
+                    "offer": "UbuntuServer",
+                    "sku": "16.04-LTS",
+                    "version": "latest"
+                }
             }
         }
     },
@@ -244,7 +253,18 @@
         },
         {
             "type": "Microsoft.Compute/availabilitySets",
-            "name": "[concat(variables('commonSettings').tenantName, '-availabilitySet')]",
+            "name": "[concat('availabilitySet-postgresql-', variables('commonSettings').tenantName)]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "platformFaultDomainCount": 3,
+                "platformUpdateDomainCount": 5,
+                "managed": true
+            }
+        },
+        {
+            "type": "Microsoft.Compute/availabilitySets",
+            "name": "[concat('availabilitySet-zookeeper-', variables('commonSettings').tenantName)]",
             "apiVersion": "2016-04-30-preview",
             "location": "[resourceGroup().location]",
             "properties": {
@@ -268,15 +288,80 @@
                         "name": "[concat('networkInterface-ipConfiguration-', 'postgresql', '-', copyIndex())]",
                         "properties": {
                             "privateIPAllocationMethod": "Static",
-                            "privateIPAddress": "[concat(variables('commonSettings').vnet.subnet.addressRangePrefix, '.', copyIndex(10))]",
+                            "privateIPAddress": "[concat(variables('commonSettings').vnet.subnet.postgresql.addressRangePrefix, '.', copyIndex(10))]",
                             "subnet": { "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('commonSettings').vnet.name), '/subnets/', variables('commonSettings').vnet.subnet.postgresql.name)]" },
                             "loadBalancerBackendAddressPools": [ { "id": "[concat(resourceId('Microsoft.Network/loadBalancers', 'loadbalancer-postgres'), '/backendAddressPools/', 'postgresqlBackendAddressPool')]" } ]
                         }
                     }
                 ]
             }
+        },
+        {
+            "type": "Microsoft.Compute/disks",
+            "name": "[concat('osDisk-', 'postgresql', '-', copyIndex())]",
+            "copy": { "name": "postgresqlOsDiskCopy", "count": "[variables('commonSettings').instanceCount.postgresql]" },
+            "apiVersion": "2016-04-30-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "osType": "Linux",
+                "diskSizeGB": 128,
+                "accountType": "Premium_LRS",
+                "creationData": {
+                    "createOption": "FromImage",
+                    "imageReference": {
+                        "id": "[concat('/Subscriptions/', subscription().subscriptionId, '/Providers/Microsoft.Compute/Locations/',resourceGroup().location, '/Publishers/', variables('commonSettings').vm.postgresql.publisher, '/ArtifactTypes/VMImage/Offers/', variables('commonSettings').vm.postgresql.offer, '/Skus/', variables('commonSettings').vm.postgresql.sku, '/Versions/', variables('commonSettings').vm.postgresql.version)]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/disks",
+            "name": "dataDisk1",
+            "apiVersion": "2016-04-30-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "creationData": {
+                    "createOption": "Empty"
+                },
+                "accountType": "Premium_LRS",
+                "diskSizeGB": 128
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat('virtualMachine-', 'postgresql', '-', copyIndex())]",
+            "copy": { "name": "postgresqlVmCopy", "count": "[variables('commonSettings').instanceCount.postgresql]" },
+            "apiVersion": "2016-04-30-preview",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkInterfaces/', concat('networkInterface-', 'postgresql', '-', copyIndex()))]",
+                "[concat('Microsoft.Compute/availabilitySets/', concat('availabilitySet-postgresql-', variables('commonSettings').tenantName))]"
+            ],
+            "properties": {
+                "hardwareProfile": { "vmSize": "[parameters('postgresqlInstanceSize')]" },
+                "availabilitySet": { 
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', concat('availabilitySet-postgresql-', variables('commonSettings').tenantName))]" 
+                },
+                "networkProfile": { 
+                    "networkInterfaces": [ 
+                        { 
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat('networkInterface-', 'postgresql', '-', copyIndex()))]" 
+                        } 
+                    ] 
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "name": "[concat('osDisk-', 'postgresql', '-', copyIndex())]",
+                        "osType": "Linux",
+                        "caching": "ReadWrite",
+                        "createOption": "Attach",
+                        "managedDisk": { "id": "[resourceId('Microsoft.Compute/disks', concat('osDisk-', 'postgresql', '-', copyIndex()))]" }
+                    }
+                }
+            }
         }
     ],
     "outputs": {
+        
     }
 }
