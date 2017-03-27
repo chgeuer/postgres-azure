@@ -20,10 +20,9 @@ function createIp {
   done
 
   #create D-Net of Ip
-  ip="$ip$((${ary[-1]}+$index))"
-  printf $ip
+  ip="$ip$((${ary[-1]}+index))"
+  printf "%i" "$ip"
 }
-
 
 # "commandToExecute": "[concat('./start-pg.sh ', 
 #                       parameters('clusterName'), ' ', 
@@ -46,6 +45,7 @@ adminPassword=$8
 
 pgversion=9.5
 patroniversion=6eb2e2114453545256ac7cbfec55bda285ffb955
+
 patroniDir=/usr/local/patroni-master
 patroniCfg=$patroniDir/postgres.yml
 hacfgFile=${patroniDir}/postgresha.cfg
@@ -160,15 +160,15 @@ export PATH=/usr/lib/postgresql/${pgversion}/bin:$PATH
 
 # create RAID
 
-sudo chmod +x ./setup-raid.sh
-sudo ./setup-raid.sh /mnt/database
-sudo mkdir /mnt/database/data
-sudo chmod 777 /mnt/database/data
+chmod +x ./setup-raid.sh
+./setup-raid.sh /mnt/database
+mkdir /mnt/database/data
+chmod 777 /mnt/database/data
 
 # write configuration
 echo "START IP PROGRESS $startIpPostgres"
 
-sudo cat > $patroniCfg <<-EOF 
+cat > $patroniCfg <<-EOF 
 	scope: &scope $clusterName
 	ttl: &ttl 30
 	loop_wait: &loop_wait 10
@@ -176,7 +176,7 @@ EOF
 
 
 if [[ $myIndex -eq 0 ]]; then
-sudo cat >> $patroniCfg <<-EOF 
+cat >> $patroniCfg <<-EOF 
 	name: postgres$myIndex
 EOF
 fi
@@ -184,10 +184,10 @@ fi
 #  listen: 10.0.101.$(($myIndex + 10)):8008
 #  connect_address: 10.0.101.$(($myIndex + 10)):8008
 
-sudo cat  >> $patroniCfg <<-EOF
+cat  >> $patroniCfg <<-EOF
 	restapi:
-	  listen: $(createIp $startIpPostgres $myIndex):8008
-	  connect_address: $(createIp $startIpPostgres $myIndex):8008
+	  listen: $(createIp "$startIpPostgres" "$myIndex"):8008
+	  connect_address: $(createIp "$startIpPostgres" "$myIndex"):8008
 	zookeeper:
 	  scope: *scope
 	  session_timeout: *ttl
@@ -198,16 +198,16 @@ EOF
 
 i=0
 while [[ $i -lt $amountZooKeepers ]]; do
-	sudo cat >> $patroniCfg <<-EOF 
-	    - $(createIp $startIpZooKeepers $i):2181
+	cat >> $patroniCfg <<-EOF 
+	    - $(createIp "$startIpZooKeepers" "$i"):2181
 	EOF
-	i=$(($i+1))
+	i=$(i+1)
 done
 
 echo "" >> $patroniCfg
 
 if [[ $myIndex -eq 0 ]]; then
-	sudo cat >> $patroniCfg <<-EOF 
+	cat >> $patroniCfg <<-EOF 
 	bootstrap:
 	  dcs:
 	    ttl: *ttl
@@ -238,7 +238,7 @@ if [[ $myIndex -eq 0 ]]; then
 EOF
 fi
 
-sudo cat >> $patroniCfg <<-EOF 
+cat >> $patroniCfg <<-EOF 
 	tags:
 	  nofailover: false
 	  noloadbalance: false
@@ -246,22 +246,22 @@ sudo cat >> $patroniCfg <<-EOF
 	postgresql:
 EOF
 
-if [ $myIndex -ne 0 ] then
-	sudo cat >> $patroniCfg <<-EOF 
+if [[ $myIndex -ne 0 ]]; then
+	cat >> $patroniCfg <<-EOF 
 	  name: postgres${myIndex}
 EOF
 fi
 
 
-sudo cat >> $patroniCfg <<-EOF 
+cat >> $patroniCfg <<-EOF 
 	  listen: '*:5433'
-	  connect_address: $(createIp $startIpPostgres $myIndex):5433
+	  connect_address: $(createIp "$startIpPostgres" "$myIndex"):5433
 	  data_dir: /mnt/database/data/postgresql
 	  pgpass: /tmp/pgpass
 EOF
 
 if [[ $myIndex -ne 0 ]]; then
-sudo cat >> $patroniCfg <<-EOF 
+cat >> $patroniCfg <<-EOF 
 	  maximum_lag_on_failover: 1048576
 	  use_slots: true
 	  initdb:
@@ -299,7 +299,7 @@ sudo cat >> $patroniCfg <<-EOF
 	    unix_socket_directories: '.'
 	EOF
   else
-	sudo cat >> $patroniCfg <<-EOF 
+	cat >> $patroniCfg <<-EOF 
 	    authentication:
 	      replication:
 	        username: replicator
@@ -312,9 +312,9 @@ sudo cat >> $patroniCfg <<-EOF
 	EOF
 fi
 
-sudo chmod 666 $patroniCfg
+chmod 666 $patroniCfg
 
-sudo cat > $hacfgFile <<-EOF 
+cat > $hacfgFile <<-EOF 
 	global
 	    maxconn 100
 
@@ -338,22 +338,22 @@ EOF
 
 i=0
 while [[ $i -lt $amountPostgres ]]; do
-	sudo cat >> $hacfgFile <<-EOF 
-		  server Postgres$i $(createIp $startIpPostgres $i):5433 maxconn 100 check port 8008
+	cat >> $hacfgFile <<-EOF 
+		  server Postgres$i $(createIp "$startIpPostgres" "$i"):5433 maxconn 100 check port 8008
 	EOF
-	i=$(($i+1))
+	i=$(i+1)
 done
-sudo chmod 666 $hacfgFile
+chmod 666 $hacfgFile
 
-sudo cat > ${patroniDir}/patroni_start.sh <<-EOF 
+cat > ${patroniDir}/patroni_start.sh <<-EOF 
 	#!/bin/bash
 	export PATH=/usr/lib/postgresql/9.5/bin:\$PATH
 	${patroniDir}/patroni.py ${patroniCfg}
 EOF
 
-sudo chmod +x ${patroniDir}/patroni_start.sh
+chmod +x ${patroniDir}/patroni_start.sh
 
-sudo cat > /etc/supervisor/conf.d/patroni.conf <<-EOF 
+cat > /etc/supervisor/conf.d/patroni.conf <<-EOF 
 	[program:patroni]
 	command=${patroniDir}/patroni_start.sh
 	user=$adminUsername
@@ -363,7 +363,7 @@ sudo cat > /etc/supervisor/conf.d/patroni.conf <<-EOF
 	stdout_logfile=/var/log/patroni.out.log
 EOF
 
-sudo cat > /etc/supervisor/conf.d/haproxy.conf <<-EOF 
+cat > /etc/supervisor/conf.d/haproxy.conf <<-EOF 
 	[program:haproxy]
 	command=haproxy -D -f $hacfgFile
 	autostart=true
@@ -372,6 +372,6 @@ sudo cat > /etc/supervisor/conf.d/haproxy.conf <<-EOF
 	stdout_logfile=/var/log/haproxy.out.log
 EOF
 
-sudo service supervisor restart
-sudo supervisorctl reread
-sudo supervisorctl update
+service supervisor restart
+supervisorctl reread
+supervisorctl update
