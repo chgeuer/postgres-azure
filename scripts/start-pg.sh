@@ -175,7 +175,7 @@ sudo cat > $patroniCfg <<-EOF
 EOF
 
 
-if [ $myIndex -eq 0 ] then
+if [[ $myIndex -eq 0 ]]; then
 sudo cat >> $patroniCfg <<-EOF 
 	name: postgres$myIndex
 EOF
@@ -197,7 +197,7 @@ sudo cat  >> $patroniCfg <<-EOF
 EOF
 
 i=0
-while [ $i -lt $amountZooKeepers ] do
+while [[ $i -lt $amountZooKeepers ]]; do
 	sudo cat >> $patroniCfg <<-EOF 
 	    - $(createIp $startIpZooKeepers $i):2181
 	EOF
@@ -206,7 +206,7 @@ done
 
 echo "" >> $patroniCfg
 
-if [ $myIndex -eq 0 ] then
+if [[ $myIndex -eq 0 ]]; then
 	sudo cat >> $patroniCfg <<-EOF 
 	bootstrap:
 	  dcs:
@@ -243,13 +243,12 @@ sudo cat >> $patroniCfg <<-EOF
 	  nofailover: false
 	  noloadbalance: false
 	  clonefrom: false
-
 	postgresql:
 EOF
 
 if [ $myIndex -ne 0 ] then
 	sudo cat >> $patroniCfg <<-EOF 
-    	  name: postgres${myIndex}
+	  name: postgres${myIndex}
 EOF
 fi
 
@@ -261,7 +260,7 @@ sudo cat >> $patroniCfg <<-EOF
 	  pgpass: /tmp/pgpass
 EOF
 
-if [ $myIndex -ne 0 ] then
+if [[ $myIndex -ne 0 ]]; then
 sudo cat >> $patroniCfg <<-EOF 
 	  maximum_lag_on_failover: 1048576
 	  use_slots: true
@@ -301,15 +300,15 @@ sudo cat >> $patroniCfg <<-EOF
 	EOF
   else
 	sudo cat >> $patroniCfg <<-EOF 
-		  authentication:
-		    replication:
-		      username: replicator
-		      password: "$adminPassword"
-		    superuser:
-		      username: postgres
-		      password: "$adminPassword"
-		  parameters:
-		    unix_socket_directories: '.'
+	    authentication:
+	      replication:
+	        username: replicator
+	        password: "$adminPassword"
+	      superuser:
+	        username: postgres
+	        password: "$adminPassword"
+	    parameters:
+	      unix_socket_directories: '.'
 	EOF
 fi
 
@@ -338,7 +337,7 @@ sudo cat > $hacfgFile <<-EOF
 EOF
 
 i=0
-while [ $i -lt $amountPostgres ] do
+while [[ $i -lt $amountPostgres ]]; do
 	sudo cat >> $hacfgFile <<-EOF 
 		  server Postgres$i $(createIp $startIpPostgres $i):5433 maxconn 100 check port 8008
 	EOF

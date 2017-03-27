@@ -11,7 +11,6 @@ function createIp {
   ary=($startIpInput)
   #reset internal field separator
   IFS=$oldIFS
-
   ip=""
   #create C-Net of Ip
   for (( i=0; i<$((${#ary[@]}-1)); i++ ))
@@ -71,7 +70,7 @@ tickTime=2000
 dataDir=${zkworkdir}
 clientPort=2181
 initLimit=5
-syncLimit=2
+  syncLimit=2
 EOF
 
 i=1
@@ -83,14 +82,13 @@ done
 
 echo $(($myIndex+1)) >> ${zkworkdir}/myid
 
-
 sudo cat > /etc/supervisor/conf.d/zookeeper.conf <<-EOF 
-[program:zookeeper]
-command=$zkbindir/bin/zkServer.sh start
-autostart=true
-autorestart=true
-stderr_logfile=/var/log/zookeeper.err.log
-stdout_logfile=/var/log/zookeeper.out.log
+	[program:zookeeper]
+	command=$zkbindir/bin/zkServer.sh start
+	autostart=true
+	autorestart=true
+	stderr_logfile=/var/log/zookeeper.err.log
+	stdout_logfile=/var/log/zookeeper.out.log
 EOF
 
 sudo service supervisor restart
