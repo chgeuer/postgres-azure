@@ -12,8 +12,8 @@ function createIp {
   #reset internal field separator
   IFS=$oldIFS
 
-  ip=""
   #create C-Net of Ip
+  ip=""
   for (( i=0; i<$((${#ary[@]}-1)); i++ ))
   do
     ip="$ip${ary[$i]}."
@@ -21,7 +21,7 @@ function createIp {
 
   #create D-Net of Ip
   ip="$ip$((${ary[-1]}+index))"
-  printf "%i" "$ip"
+  printf "%s" "$ip"
 }
 
 # "commandToExecute": "[concat('./start-zk.sh ', 

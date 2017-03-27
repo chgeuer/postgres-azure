@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# curl -L https://raw.githubusercontent.com/chgeuer/postgres-azure/master/scripts/start-pg.sh -o start-pg.sh
+# ./0start-pg.sh clustername 10.0.0.10 3 10.0.1.10 2 0 chgeuer supersecret123.-
+
 function createIp {
   startIpInput=$1
   index=$2
@@ -12,8 +15,8 @@ function createIp {
   #reset internal field separator
   IFS=$oldIFS
 
-  ip=""
   #create C-Net of Ip
+  ip=""
   for (( i=0; i<$((${#ary[@]}-1)); i++ ))
   do
     ip="$ip${ary[$i]}."
@@ -21,7 +24,7 @@ function createIp {
 
   #create D-Net of Ip
   ip="$ip$((${ary[-1]}+index))"
-  printf "%i" "$ip"
+  printf "%s" "$ip"
 }
 
 # "commandToExecute": "[concat('./start-pg.sh ', 
@@ -50,7 +53,7 @@ patroniDir=/usr/local/patroni-master
 patroniCfg=$patroniDir/postgres.yml
 hacfgFile=${patroniDir}/postgresha.cfg
 
-cat > /usr/local/startup.log <<-EOF
+cat > startup.log <<-EOF
 	Cluster name:        $clusterName
 	Zookeepers start IP: $startIpZooKeepers
 	Zookeepers:          $amountZooKeepers
@@ -62,14 +65,11 @@ cat > /usr/local/startup.log <<-EOF
 	patroniversion:      $patroniversion
 EOF
 
-sudo chmod 666 /usr/local/startup.log
-
-# install saltstack
-
+#
+# install & configure saltstack
+#
 curl -L https://bootstrap.saltstack.com -o bootstrap_salt.sh
 sudo sh bootstrap_salt.sh
-
-# configure saltstack
 
 cat >> /etc/salt/minion <<-EOF
 	file_client: local
@@ -125,7 +125,6 @@ cat > /srv/salt/postgres-pkgs.sls <<-EOF
 	    - pkgs:
 	      - postgresql-$pgversion
 	      - postgresql-contrib-$pgversion
-
 	postgres_repo:
 	  pkgrepo.managed:
 	    - name: "deb http://apt.postgresql.org/pub/repos/apt/ {{ grains['oscodename'] }}-pgdg main"
@@ -174,15 +173,11 @@ cat > $patroniCfg <<-EOF
 	loop_wait: &loop_wait 10
 EOF
 
-
 if [[ $myIndex -eq 0 ]]; then
 cat >> $patroniCfg <<-EOF
 	name: postgres$myIndex
 EOF
 fi
-
-#  listen: 10.0.101.$(($myIndex + 10)):8008
-#  connect_address: 10.0.101.$(($myIndex + 10)):8008
 
 cat  >> $patroniCfg <<-EOF
 	restapi:
@@ -193,11 +188,10 @@ cat  >> $patroniCfg <<-EOF
 	  session_timeout: *ttl
 	  reconnect_timeout: *loop_wait
 	  hosts:
-
 EOF
 
 for i in `seq 0 $(($instanceCount-1))`
-do     
+do
 	cat >> $patroniCfg <<-EOF
 	    - $(createIp "$startIpZooKeepers" "$i"):2181
 	EOF
