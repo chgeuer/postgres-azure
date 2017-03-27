@@ -77,18 +77,19 @@ cat > "$zkbindir/conf/zoo.cfg" <<-EOF
 	syncLimit=2
 EOF
 
-i=1
-while [[ $i -le $instanceCount ]]; do
+for i in $(seq 1 $instanceCount)
+do     
 	cat > "$zkbindir/conf/zoo.cfg" <<-EOF 
-		server.$i=$(createIp "$startIp" "$(i-1)"):2888:3888
+		server.$i=$(createIp "$startIp" "$((i-1))"):2888:3888
 	EOF
-  i=$(i+1)
 done
 
 cat > "${zkworkdir}/myid" <<-EOF 
-	$(myIndex + 1)
+	$((myIndex + 1))
 EOF
 
+# command = /usr/lib/jvm/jdk-${javaversion1}/bin/java -Dzookeeper.log.dir="." -Dzookeeper.root.logger="INFO,CONSOLE" -cp "$zkbindir/build/classes:$zkbindir/build/lib/*.jar:$zkbindir/lib/slf4j-log4j12-1.6.1.jar:$zkbindir/lib/slf4j-api-1.6.1.jar:$zkbindir/lib/netty-3.10.5.Final.jar:$zkbindir/lib/log4j-1.2.16.jar:$zkbindir/lib/jline-0.9.94.jar:$zkbindir/zookeeper-3.4.9.jar:$zkbindir/src/java/lib/*.jar:$zkbindir/conf:" -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=false org.apache.zookeeper.server.quorum.QuorumPeerMain "$zkbindir/conf/zoo.cfg"
+   
 cat > /etc/supervisor/conf.d/zookeeper.conf <<-EOF 
 	[program:zookeeper]
 	command=$zkbindir/bin/zkServer.sh start-foreground

@@ -32,6 +32,13 @@
                         "addressRangePrefix": "10.0.1",
                         "address": "10.0.1.0/24"
                     }
+                },
+                "softwareversions": {
+                    "zookeeper": "3.4.9",
+                    "java4zookeeper1": "7u75",
+                    "java4zookeeper2": "b13",
+                    "patroni": "6eb2e2114453545256ac7cbfec55bda285ffb955",
+                    "postgres": "9.5"
                 }
             }
         }

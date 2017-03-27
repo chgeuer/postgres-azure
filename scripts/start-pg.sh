@@ -85,7 +85,7 @@ cat > /srv/salt/top.sls <<-EOF
 	    - patroni
 EOF
 
-cat > /srv/salt/webserver.sls <<-EOF 
+cat > /srv/salt/webserver.sls <<-EOF
 	python-pip:
 	  pkg.installed
 	webserver:
@@ -119,7 +119,7 @@ cat > /srv/salt/webserver.sls <<-EOF
 	      - PySocks
 EOF
 
-cat > /srv/salt/postgres-pkgs.sls <<-EOF 
+cat > /srv/salt/postgres-pkgs.sls <<-EOF
 	postgres-pkgs:
 	  pkg.installed:
 	    - pkgs:
@@ -135,7 +135,7 @@ cat > /srv/salt/postgres-pkgs.sls <<-EOF
 	        - pkg: postgres-pkgs
 EOF
 
-cat > /srv/salt/patroni.sls <<-EOF 
+cat > /srv/salt/patroni.sls <<-EOF
 	patroni:
 	  pkg.installed:
 	    - pkgs:
@@ -168,7 +168,7 @@ chmod 777 /mnt/database/data
 # write configuration
 echo "START IP PROGRESS $startIpPostgres"
 
-cat > $patroniCfg <<-EOF 
+cat > $patroniCfg <<-EOF
 	scope: &scope $clusterName
 	ttl: &ttl 30
 	loop_wait: &loop_wait 10
@@ -176,7 +176,7 @@ EOF
 
 
 if [[ $myIndex -eq 0 ]]; then
-cat >> $patroniCfg <<-EOF 
+cat >> $patroniCfg <<-EOF
 	name: postgres$myIndex
 EOF
 fi
@@ -196,18 +196,17 @@ cat  >> $patroniCfg <<-EOF
 
 EOF
 
-i=0
-while [[ $i -lt $amountZooKeepers ]]; do
-	cat >> $patroniCfg <<-EOF 
+for i in `seq 0 $(($instanceCount-1))`
+do     
+	cat >> $patroniCfg <<-EOF
 	    - $(createIp "$startIpZooKeepers" "$i"):2181
 	EOF
-	i=$(i+1)
 done
 
 echo "" >> $patroniCfg
 
 if [[ $myIndex -eq 0 ]]; then
-	cat >> $patroniCfg <<-EOF 
+	cat >> $patroniCfg <<-EOF
 	bootstrap:
 	  dcs:
 	    ttl: *ttl
@@ -238,7 +237,7 @@ if [[ $myIndex -eq 0 ]]; then
 EOF
 fi
 
-cat >> $patroniCfg <<-EOF 
+cat >> $patroniCfg <<-EOF
 	tags:
 	  nofailover: false
 	  noloadbalance: false
@@ -247,13 +246,12 @@ cat >> $patroniCfg <<-EOF
 EOF
 
 if [[ $myIndex -ne 0 ]]; then
-	cat >> $patroniCfg <<-EOF 
+	cat >> $patroniCfg <<-EOF
 	  name: postgres${myIndex}
 EOF
 fi
 
-
-cat >> $patroniCfg <<-EOF 
+cat >> $patroniCfg <<-EOF
 	  listen: '*:5433'
 	  connect_address: $(createIp "$startIpPostgres" "$myIndex"):5433
 	  data_dir: /mnt/database/data/postgresql
@@ -261,7 +259,7 @@ cat >> $patroniCfg <<-EOF
 EOF
 
 if [[ $myIndex -ne 0 ]]; then
-cat >> $patroniCfg <<-EOF 
+cat >> $patroniCfg <<-EOF
 	  maximum_lag_on_failover: 1048576
 	  use_slots: true
 	  initdb:
@@ -299,7 +297,7 @@ cat >> $patroniCfg <<-EOF
 	    unix_socket_directories: '.'
 	EOF
   else
-	cat >> $patroniCfg <<-EOF 
+	cat >> $patroniCfg <<-EOF
 	    authentication:
 	      replication:
 	        username: replicator
@@ -314,10 +312,9 @@ fi
 
 chmod 666 $patroniCfg
 
-cat > $hacfgFile <<-EOF 
+cat > $hacfgFile <<-EOF
 	global
 	    maxconn 100
-
 	defaults
 	    log     global
 	    mode    tcp
@@ -326,26 +323,23 @@ cat > $hacfgFile <<-EOF
 	    timeout connect 4s
 	    timeout server 30m
 	    timeout check 5s
-
 	frontend ft_postgresql
 	    bind *:5000
 	    default_backend bk_db
-
 	backend bk_db
 	    option httpchk
-
 EOF
 
-i=0
-while [[ $i -lt $amountPostgres ]]; do
-	cat >> $hacfgFile <<-EOF 
-		  server Postgres$i $(createIp "$startIpPostgres" "$i"):5433 maxconn 100 check port 8008
+for i in `seq 0 $(($amountPostgres-1))`
+do     
+	cat >> $hacfgFile <<-EOF
+	    server Postgres$i $(createIp "$startIpPostgres" "$i"):5433 maxconn 100 check port 8008
 	EOF
-	i=$(i+1)
 done
+
 chmod 666 $hacfgFile
 
-cat > ${patroniDir}/patroni_start.sh <<-EOF 
+cat > ${patroniDir}/patroni_start.sh <<-EOF
 	#!/bin/bash
 	export PATH=/usr/lib/postgresql/9.5/bin:\$PATH
 	${patroniDir}/patroni.py ${patroniCfg}
@@ -353,7 +347,7 @@ EOF
 
 chmod +x ${patroniDir}/patroni_start.sh
 
-cat > /etc/supervisor/conf.d/patroni.conf <<-EOF 
+cat > /etc/supervisor/conf.d/patroni.conf <<-EOF
 	[program:patroni]
 	command=${patroniDir}/patroni_start.sh
 	user=$adminUsername
@@ -363,7 +357,7 @@ cat > /etc/supervisor/conf.d/patroni.conf <<-EOF
 	stdout_logfile=/var/log/patroni.out.log
 EOF
 
-cat > /etc/supervisor/conf.d/haproxy.conf <<-EOF 
+cat > /etc/supervisor/conf.d/haproxy.conf <<-EOF
 	[program:haproxy]
 	command=haproxy -D -f $hacfgFile
 	autostart=true
