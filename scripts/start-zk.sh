@@ -24,45 +24,75 @@ function createIp {
   printf $ip
 }
 
+# "commandToExecute": "[concat('./start-zk.sh ', 
+#                              copyIndex(), ' ', 
+#                              variables('zookeeperInstanceCount'), ' ', 
+#                              variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP'))]"
 
 myIndex=$1
 instanceCount=$2
 startIp=$3
 
-wget --no-check-certificate --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" "http://download.oracle.com/otn-pub/java/jdk/7u75-b13/jdk-7u75-linux-x64.tar.gz"
-tar -xvf jdk-7*
-mkdir /usr/lib/jvm
-mv ./jdk1.7* /usr/lib/jvm/jdk1.7.0
-update-alternatives --install "/usr/bin/java" "java" "/usr/lib/jvm/jdk1.7.0/bin/java" 1
-update-alternatives --install "/usr/bin/javac" "javac" "/usr/lib/jvm/jdk1.7.0/bin/javac" 1
-update-alternatives --install "/usr/bin/javaws" "javaws" "/usr/lib/jvm/jdk1.7.0/bin/javaws" 1
+zkversion=3.4.9
+javaversion1=7u75
+javaversion2=b13
+
+sudo apt-get -y install jq supervisor
+
+#
+# Install Java
+#
+wget --no-check-certificate --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" -c -O "jdk-${javaversion1}-linux-x64.tar.gz"  "http://download.oracle.com/otn-pub/java/jdk/${javaversion1}-${javaversion2}/jdk-${javaversion1}-linux-x64.tar.gz"
+# wget --no-check-certificate --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" -c -O "jdk-8u121-linux-x64.tar.gz" "http://download.oracle.com/otn-pub/java/jdk/8u121-b13/e9e7ea248e2c4826b92b3f075a80e441/jdk-8u121-linux-x64.tar.gz"
+
+mkdir --parents /usr/lib/jvm/jdk-${javaversion1}
+tar -xvf jdk-${javaversion1}-linux-x64.tar.gz --strip-components=1 --directory /usr/lib/jvm/jdk-${javaversion1} 
+update-alternatives --install "/usr/bin/java"   "java"   "/usr/lib/jvm/jdk-${javaversion1}/bin/java" 1
+update-alternatives --install "/usr/bin/javac"  "javac"  "/usr/lib/jvm/jdk-${javaversion1}/bin/javac" 1
+update-alternatives --install "/usr/bin/javaws" "javaws" "/usr/lib/jvm/jdk-${javaversion1}/bin/javaws" 1
 chmod a+x /usr/bin/java
 chmod a+x /usr/bin/javac
 chmod a+x /usr/bin/javaws
 
-cd /usr/local
+#
+# Install ZooKeeper
+#
+zkbindir=/usr/local/zookeeper-${zkversion}
+zkworkdir=/var/lib/zookeeper
+mkdir --parents $zkbindir
+mkdir --parents $zkworkdir
+mirror=`curl -s "https://www.apache.org/dyn/closer.cgi?as_json=1" | jq --raw-output .preferred`
+zkurl="${mirror}zookeeper/zookeeper-${zkversion}/zookeeper-${zkversion}.tar.gz"
+curl --get --url $zkurl --output "zookeeper-${zkversion}.tar.gz"
+tar -xvf "zookeeper-${zkversion}.tar.gz" --strip-components=1 --directory $zkbindir
 
-wget "https://tangibletransfer.blob.core.windows.net/public/postgresha/zookeeper-3.4.8.tar.gz"
-tar -xvf "zookeeper-3.4.8.tar.gz"
+sudo cat > $zkbindir/conf/zoo.cfg <<-EOF 
+tickTime=2000
+dataDir=${zkworkdir}
+clientPort=2181
+initLimit=5
+syncLimit=2
+EOF
 
-touch zookeeper-3.4.8/conf/zoo.cfg
-
-echo "tickTime=2000" >> zookeeper-3.4.8/conf/zoo.cfg
-echo "dataDir=/var/lib/zookeeper" >> zookeeper-3.4.8/conf/zoo.cfg
-echo "clientPort=2181" >> zookeeper-3.4.8/conf/zoo.cfg
-echo "initLimit=5" >> zookeeper-3.4.8/conf/zoo.cfg
-echo "syncLimit=2" >> zookeeper-3.4.8/conf/zoo.cfg
- 
 i=1
 while [ $i -le $instanceCount ]
 do
-	echo "server.$i=$(createIp $startIp $(($i-1))):2888:3888" >> zookeeper-3.4.8/conf/zoo.cfg
-#    echo "server.$i=10.0.100.$(($i+9)):2888:3888" >> zookeeper-3.4.8/conf/zoo.cfg
-    i=$(($i+1))
+	echo "server.$i=$(createIp $startIp $(($i-1))):2888:3888" >> $zkbindir/conf/zoo.cfg
+  i=$(($i+1))
 done
 
-mkdir -p /var/lib/zookeeper
+echo $(($myIndex+1)) >> ${zkworkdir}/myid
 
-echo $(($myIndex+1)) >> /var/lib/zookeeper/myid
 
-zookeeper-3.4.8/bin/zkServer.sh start
+sudo cat > /etc/supervisor/conf.d/zookeeper.conf <<-EOF 
+[program:zookeeper]
+command=$zkbindir/bin/zkServer.sh start
+autostart=true
+autorestart=true
+stderr_logfile=/var/log/zookeeper.err.log
+stdout_logfile=/var/log/zookeeper.out.log
+EOF
+
+sudo service supervisor restart
+sudo supervisorctl reread
+sudo supervisorctl update

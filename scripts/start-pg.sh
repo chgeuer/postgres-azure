@@ -24,6 +24,17 @@ function createIp {
   printf $ip
 }
 
+
+# "commandToExecute": "[concat('./start-pg.sh ', 
+#                       parameters('clusterName'), ' ', 
+#                       variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP'), ' ',  
+#                       variables('zookeeperInstanceCount'), ' ',  
+#                       variables('postgresNetPrefix'), variables('postgresNetStartIP'), ' ',  
+#                       variables('postgresInstanceCount'), ' ',  
+#                       copyIndex(), ' ',  
+#                       parameters('adminUsername'),  
+#                       ' \"', parameters('adminPassword'), '\" ')]"
+
 clusterName=$1
 startIpZooKeepers=$2
 amountZooKeepers=$3

@@ -91,7 +91,7 @@
       "version": "latest"
     },
     "diskCaching": "ReadOnly",
-    "fileroot": "https://.../postgresha/"
+    "fileroot": "https://raw.githubusercontent.com/chgeuer/postgres-azure/master/scripts/"
   },
   "resources": [
     {
@@ -272,9 +272,9 @@
         "typeHandlerVersion": "1.2",
         "settings": {
           "fileUris": [
-            "[concat(variables('fileroot'), 'zookeeper_startup_existing_net.sh')]"
+            "[concat(variables('fileroot'), 'start-zk.sh')]"
           ],
-          "commandToExecute": "[concat('./zookeeper_startup_existing_net.sh ', copyIndex(), ' ', variables('zookeeperInstanceCount'), ' ', variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP'))]"
+          "commandToExecute": "[concat('./start-zk.sh ', copyIndex(), ' ', variables('zookeeperInstanceCount'), ' ', variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP'))]"
         }
       },
       "dependsOn": [
@@ -425,7 +425,7 @@
             "[concat(variables('fileroot'), 'setup-raid.sh')]",
             "[concat(variables('fileroot'), 'start-pg.sh')]"
           ],
-          "commandToExecute": "[concat('./postgres_startup_existing_net.sh ', parameters('clusterName'), ' ', variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP'), ' ', variables('zookeeperInstanceCount'), ' ', variables('postgresNetPrefix'), variables('postgresNetStartIP'), ' ', variables('postgresInstanceCount'), ' ', copyIndex(), ' ', parameters('adminUsername'), ' \"', parameters('adminPassword'), '\" ')]"
+          "commandToExecute": "[concat('./start-pg.sh ', parameters('clusterName'), ' ', variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP'), ' ', variables('zookeeperInstanceCount'), ' ', variables('postgresNetPrefix'), variables('postgresNetStartIP'), ' ', variables('postgresInstanceCount'), ' ', copyIndex(), ' ', parameters('adminUsername'), ' \"', parameters('adminPassword'), '\" ')]"
         }
       },
       "dependsOn": [
