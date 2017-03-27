@@ -46,7 +46,7 @@
                 "address": "10.0.0.0/16",
                 "subnet": {
                     "postgresql": {
-                        "name": "subnet-postgresql",
+                        "name": "subnet-postgresql", 
                         "nsgName": "nsg-postgresql",
                         "addressRangePrefix": "10.0.0",
                         "address": "10.0.0.0/24"
@@ -64,6 +64,10 @@
                 "java4zookeeper1": "7u75", "java4zookeeper2": "b13",
                 "patroni": "6eb2e2114453545256ac7cbfec55bda285ffb955",
                 "postgres": "9.6"
+            },
+            "instanceCount": {
+                "postgresql": 2,
+                "zookeeper": 2
             }
         }
     },
@@ -247,6 +251,29 @@
                 "platformFaultDomainCount": 3,
                 "platformUpdateDomainCount": 5,
                 "managed": true
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat('networkInterface-', 'postgresql', '-', copyIndex())]",
+            "copy": { "name": "postgresqlNicCopy", "count": "[variables('commonSettings').instanceCount.postgresql]" },
+            "apiVersion": "2016-09-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', variables('commonSettings').vnet.name)]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "[concat('networkInterface-ipConfiguration-', 'postgresql', '-', copyIndex())]",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[concat(variables('commonSettings').vnet.subnet.addressRangePrefix, '.', copyIndex(10))]",
+                            "subnet": { "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('commonSettings').vnet.name), '/subnets/', variables('commonSettings').vnet.subnet.postgresql.name)]" },
+                            "loadBalancerBackendAddressPools": [ { "id": "[concat(resourceId('Microsoft.Network/loadBalancers', 'loadbalancer-postgres'), '/backendAddressPools/', 'postgresqlBackendAddressPool')]" } ]
+                        }
+                    }
+                ]
             }
         }
     ],
