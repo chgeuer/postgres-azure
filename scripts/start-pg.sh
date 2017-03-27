@@ -69,7 +69,7 @@ EOF
 # install & configure saltstack
 #
 curl -L https://bootstrap.saltstack.com -o bootstrap_salt.sh
-sudo sh bootstrap_salt.sh
+sh bootstrap_salt.sh
 
 cat >> /etc/salt/minion <<-EOF
 	file_client: local
