@@ -41,7 +41,7 @@ zkversion=3.4.9
 javaversion1=7u75
 javaversion2=b13
 
-sudo apt-get -y install jq supervisor
+apt-get -y install jq supervisor
 
 #
 # Install Java

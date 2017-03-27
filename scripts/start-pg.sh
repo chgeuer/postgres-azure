@@ -1,8 +1,5 @@
 #!/bin/bash
 
-# curl -L https://raw.githubusercontent.com/chgeuer/postgres-azure/master/scripts/start-pg.sh -o start-pg.sh
-# ./0start-pg.sh clustername 10.0.0.10 3 10.0.1.10 2 0 chgeuer supersecret123.-
-
 function createIp {
   startIpInput=$1
   index=$2
@@ -27,6 +24,10 @@ function createIp {
   printf "%s" "$ip"
 }
 
+# curl -L https://raw.githubusercontent.com/chgeuer/postgres-azure/master/scripts/start-pg.sh -o start-pg.sh
+# ./0start-pg.sh clustername 10.0.0.10 3 10.0.1.10 2 0 chgeuer supersecret123.-
+# lint using https://www.shellcheck.net/#
+
 # "commandToExecute": "[concat('./start-pg.sh ', 
 #                       parameters('clusterName'), ' ', 
 #                       variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP'), ' ',  
@@ -34,8 +35,10 @@ function createIp {
 #                       variables('postgresNetPrefix'), variables('postgresNetStartIP'), ' ',  
 #                       variables('postgresInstanceCount'), ' ',  
 #                       copyIndex(), ' ',  
-#                       parameters('adminUsername'),  
-#                       ' \"', parameters('adminPassword'), '\" ')]"
+#                       parameters('adminUsername'), 
+#                       ' \"', parameters('adminPassword'), '\" ', 
+#                       variables('commonSettings').softwareversions.patroni, ' ',
+#                       variables('commonSettings').softwareversions.postgres )]"
 
 clusterName=$1
 startIpZooKeepers=$2
@@ -45,13 +48,13 @@ amountPostgres=$5
 myIndex=$6
 adminUsername=$7
 adminPassword=$8
+patroniversion=$9
+pgversion=$10
 
-pgversion=9.5
-patroniversion=6eb2e2114453545256ac7cbfec55bda285ffb955
 
-patroniDir=/usr/local/patroni-master
-patroniCfg=$patroniDir/postgres.yml
-hacfgFile=${patroniDir}/postgresha.cfg
+patroniDir="/usr/local/patroni-${patroniversion}"
+patroniCfg="${patroniDir}/postgres.yml"
+hacfgFile="${patroniDir}/postgresha.cfg"
 
 cat > startup.log <<-EOF
 	Cluster name:        $clusterName
@@ -159,10 +162,11 @@ export PATH=/usr/lib/postgresql/${pgversion}/bin:$PATH
 
 # create RAID
 
-chmod +x ./setup-raid.sh
-./setup-raid.sh /mnt/database
-mkdir /mnt/database/data
-chmod 777 /mnt/database/data
+mount_point=/mnt/database
+
+sh setup-raid.sh "$mount_point"
+mkdir "$mount_point/data"
+chmod 777 "$mount_point/data"
 
 # write configuration
 echo "START IP PROGRESS $startIpPostgres"
@@ -190,7 +194,7 @@ cat  >> $patroniCfg <<-EOF
 	  hosts:
 EOF
 
-for i in `seq 0 $(($instanceCount-1))`
+for i in `seq 0 $((instanceCount-1))`
 do
 	cat >> $patroniCfg <<-EOF
 	    - $(createIp "$startIpZooKeepers" "$i"):2181
@@ -248,7 +252,7 @@ fi
 cat >> $patroniCfg <<-EOF
 	  listen: '*:5433'
 	  connect_address: $(createIp "$startIpPostgres" "$myIndex"):5433
-	  data_dir: /mnt/database/data/postgresql
+	  data_dir: ${mount_point}/data/postgresql
 	  pgpass: /tmp/pgpass
 EOF
 
@@ -324,21 +328,19 @@ cat > $hacfgFile <<-EOF
 	    option httpchk
 EOF
 
-for i in `seq 0 $(($amountPostgres-1))`
-do     
+for i in `seq 0 $((amountPostgres-1))`
+do
 	cat >> $hacfgFile <<-EOF
 	    server Postgres$i $(createIp "$startIpPostgres" "$i"):5433 maxconn 100 check port 8008
 	EOF
 done
-
 chmod 666 $hacfgFile
 
 cat > ${patroniDir}/patroni_start.sh <<-EOF
 	#!/bin/bash
-	export PATH=/usr/lib/postgresql/9.5/bin:\$PATH
+	export PATH=/usr/lib/postgresql/${pgversion}/bin:\$PATH
 	${patroniDir}/patroni.py ${patroniCfg}
 EOF
-
 chmod +x ${patroniDir}/patroni_start.sh
 
 cat > /etc/supervisor/conf.d/patroni.conf <<-EOF

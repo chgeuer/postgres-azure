@@ -1,11 +1,36 @@
 {
-    "_comments": [ "https://docs.microsoft.com/en-us/azure/templates/microsoft.compute/disks" ],
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
         "tenantName": {
             "type": "string",
             "defaultValue": "foo"
+        },
+        "adminUsername": {
+            "type": "string",
+            "defaultValue": "chgeuer",
+            "metadata": { "description": "Admin user name for the Virtual Machines." }
+        },
+        "adminSecureShellKey": {
+            "type": "string",
+            "defaultValue": "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAk/ViUPrGp7KoJLuN2PgofgMyw7SN9zfLYFDDR0TRYa8cOvJlE8NdZYt6Oqa4aL/fslKr9bmlMCdawhZRL7sHccIIS0I0zG7iD15rQL3/Y5aZOf3ML+bebpSj+SE5OeHT9iobgsYpK8gq72d8tmZZAfKhx6fRJsgC2j2xXH/GveoZ5GkHnhJUYuYPmNjEb/PK7LT43XuP+E9Rderr3LPUTuBeGVW9do0HS7X8I2uTn0+BqgkZLOO4FCnSXxh1u6fuD++ZgOZVmB6Q1xEdHSA7LLnPkjDZqbWezLIh5cSdNPUW2JG7tMxQTAZzVoNMb6vAVsfslB16rqZQ21EdIq+0pw== chgeuer-dcos-1",
+            "metadata": { "description": "Admin SSH key for the Virtual Machines." }
+        },
+        "postgresqlInstanceCount": {
+            "defaultValue": 2, "minValue": 2, "maxValue": 10, "type": "int",
+            "metadata": { "description": "Number of postgreSQL servers in the cluster." }
+        },
+        "postgresqlInstanceSize": {
+            "defaultValue": "Standard_DS2_v2",
+            "allowedValues": [
+                "Standard_DS1", "Standard_DS2", "Standard_DS3", "Standard_DS4",
+                "Standard_DS11", "Standard_DS12", "Standard_DS13", "Standard_DS14",
+                "Standard_GS1", "Standard_GS2", "Standard_GS3", "Standard_GS4", "Standard_GS5", 
+                "Standard_DS1_v2", "Standard_DS2_v2", "Standard_DS3_v2", "Standard_DS4_v2", "Standard_DS5_v2",
+                "Standard_DS11_v2", "Standard_DS12_v2", "Standard_DS13_v2", "Standard_DS14_v2", "Standard_DS15_v2"
+            ],
+            "type": "string",
+            "metadata": { "description": "Size of the postgreSQL server in the cluster." }
         }
     },
     "variables": {
@@ -21,25 +46,24 @@
                 "address": "10.0.0.0/16",
                 "subnet": {
                     "postgresql": {
-                        "name": "['subnet-', 'postgresql')]",
-                        "nsgName": "['nsg-', 'postgresql')]",
+                        "name": "subnet-postgresql",
+                        "nsgName": "nsg-postgresql",
                         "addressRangePrefix": "10.0.0",
                         "address": "10.0.0.0/24"
                     },
                     "zookeeper": {
-                        "name": "[concat('subnet-', 'zookeeper')]",
-                        "nsgName": "[concat('nsg-', 'zookeeper')]",
+                        "name": "subnet-zookeeper",
+                        "nsgName": "nsg-zookeeper",
                         "addressRangePrefix": "10.0.1",
                         "address": "10.0.1.0/24"
                     }
-                },
-                "softwareversions": {
-                    "zookeeper": "3.4.9",
-                    "java4zookeeper1": "7u75",
-                    "java4zookeeper2": "b13",
-                    "patroni": "6eb2e2114453545256ac7cbfec55bda285ffb955",
-                    "postgres": "9.5"
                 }
+            },
+            "softwareversions": {
+                "zookeeper": "3.4.9",
+                "java4zookeeper1": "7u75", "java4zookeeper2": "b13",
+                "patroni": "6eb2e2114453545256ac7cbfec55bda285ffb955",
+                "postgres": "9.6"
             }
         }
     },
@@ -57,10 +81,90 @@
             }
         },
         {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('commonSettings').vnet.subnet.postgresql.nsgName]",
+            "apiVersion": "2016-09-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "http-in",
+                        "properties": {
+                            "priority": 100,
+                            "description": "Allow TCP/80 Inbound (Internet->Firewall)",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "protocol": "Tcp",
+                            "sourceAddressPrefix": "Internet",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "[variables('commonSettings').vnet.subnet.postgresql.address]",
+                            "destinationPortRange": "80"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('commonSettings').vnet.subnet.zookeeper.nsgName]",
+            "apiVersion": "2016-09-01",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "zookeeper-in",
+                        "properties": {
+                            "priority": 100,
+                            "description": "Allow TCP/2181 Inbound (Patroni --> ZooKeeper)",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "protocol": "Tcp",
+                            "sourceAddressPrefix": "[variables('commonSettings').vnet.subnet.postgresql.address]",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "[variables('commonSettings').vnet.subnet.zookeeper.address]",
+                            "destinationPortRange": "2181"
+                        }
+                    },
+                    {
+                        "name": "zookeeper-cluster-port-1",
+                        "properties": {
+                            "priority": 101,
+                            "description": "Allow TCP/2888 Inbound (ZooKeeper --> ZooKeeper)",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "protocol": "Tcp",
+                            "sourceAddressPrefix": "[variables('commonSettings').vnet.subnet.zookeeper.address]",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "[variables('commonSettings').vnet.subnet.zookeeper.address]",
+                            "destinationPortRange": "2888"
+                        }
+                    },
+                    {
+                        "name": "zookeeper-cluster-port-2",
+                        "properties": {
+                            "priority": 102,
+                            "description": "Allow TCP/3888 Inbound (ZooKeeper --> ZooKeeper)",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "protocol": "Tcp",
+                            "sourceAddressPrefix": "[variables('commonSettings').vnet.subnet.zookeeper.address]",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "[variables('commonSettings').vnet.subnet.zookeeper.address]",
+                            "destinationPortRange": "3888"
+                        }
+                    }
+                ]
+            }
+        },
+        {
             "type": "Microsoft.Network/virtualNetworks",
             "name": "[variables('commonSettings').vnet.name]",
             "apiVersion": "2015-05-01-preview",
             "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkSecurityGroups/', variables('commonSettings').vnet.subnet.postgresql.nsgName)]",
+                "[concat('Microsoft.Network/networkSecurityGroups/', variables('commonSettings').vnet.subnet.zookeeper.nsgName)]"
+            ],
             "properties": {
                 "addressSpace": {
                     "addressPrefixes": [ "[variables('commonSettings').vnet.address]" ]
@@ -69,9 +173,18 @@
                     {
                         "name": "[variables('commonSettings').vnet.subnet.postgresql.name]",
                         "properties": {
-                            "addressPrefix": "[variables('commonSettings').vnet.subnet.postgresql.address)]",
+                            "addressPrefix": "[variables('commonSettings').vnet.subnet.postgresql.address]",
                             "networkSecurityGroup": {
-                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('commonSettings').vnet.subnet.jumphost.nsgName)]"
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('commonSettings').vnet.subnet.postgresql.nsgName)]"
+                            }
+                        }
+                    },
+                    {
+                        "name": "[variables('commonSettings').vnet.subnet.zookeeper.name]",
+                        "properties": {
+                            "addressPrefix": "[variables('commonSettings').vnet.subnet.zookeeper.address]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups',  variables('commonSettings').vnet.subnet.zookeeper.nsgName)]"
                             }
                         }
                     }
