@@ -1,0 +1,626 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environment": {
+      "type": "string",
+      "allowedValues": [
+        "Azure Cloud",
+        "Azure German Cloud"
+      ],
+      "defaultValue": "Azure Cloud"
+    },
+    "clusterName": {
+      "type": "string"
+    },
+    "instanceCount": {
+      "defaultValue": 2,
+      "minValue": 2,
+      "maxValue": 200,
+      "type": "int",
+      "metadata": {
+        "description": "Number of postgreSQL servers in the cluster."
+      }
+    },
+    "instanceSize": {
+      "type": "string",
+      "allowedValues": [
+        "Standard_DS1", "Standard_DS2", "Standard_DS3", "Standard_DS4",
+        "Standard_DS11", "Standard_DS12", "Standard_DS13", "Standard_DS14",
+        "Standard_GS1", "Standard_GS2", "Standard_GS3", "Standard_GS4", "Standard_GS5", 
+        "Standard_DS1_v2", "Standard_DS2_v2", "Standard_DS3_v2", "Standard_DS4_v2", "Standard_DS5_v2",
+        "Standard_DS11_v2", "Standard_DS12_v2", "Standard_DS13_v2", "Standard_DS14_v2", "Standard_DS15_v2"
+      ],
+      "defaultValue": "Standard_DS2_v2",
+      "metadata": {
+        "description": "Size of the postgreSQL server in the cluster."
+      }
+    },
+    "dataDiskSizeInGB": {
+      "type": "int",
+      "defaultValue": 128,
+      "allowedValues": [
+        128,
+        512,
+        1024
+      ],
+      "metadata": {
+        "description": "Defines the size of each data disk (premium storage sizes)"
+      }
+    },
+    "dataDiscCount": {
+      "type": "string",
+      "defaultValue": "4",
+      "allowedValues": [ "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16" ],
+      "metadata": {
+        "description": "This parameter allows the user to select the number of disks wanted"
+      }
+    },
+    "adminUsername": {
+      "type": "string"
+    },
+    "adminPassword": {
+      "type": "securestring"
+    }
+  },
+  "variables": {
+    "selectedEnvironmentIndex": "[int(replace(replace(parameters('environment'), 'Azure Cloud', '0'), 'Azure German Cloud', '1'))]",
+    "storageEndpoints": [
+      "core.windows.net",
+      "core.cloudapi.de"
+    ],
+    "storageEndpoint": "[variables('storageEndpoints')[variables('selectedEnvironmentIndex')]]",
+    "ipName": "[concat(parameters('clusterName'), '-ip')]",
+    "ipId": "[resourceId('Microsoft.Network/publicIPAddresses/', variables('ipName'))]",
+    "lbName": "postgresLoadBalancer",
+    "lbId": "[resourceId('Microsoft.Network/loadBalancers/', variables('lbName'))]",
+    "vnetName": "[concat(parameters('clusterName'), '-net')]",
+    "vnetId": "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetName'))]",
+    "zookeeperNetName": "zookeeper-subnet",
+    "zookeeperNetPrefix": "10.0.100.",
+    "zookeeperNetStartIP": 10,
+    "zookeeperInstanceCount": 3,
+    "postgresNetName": "postgres-subnet",
+    "postgresNetPrefix": "10.0.101.",
+    "postgresNetStartIP": 10,
+    "postgresInstanceCount": "[parameters('instanceCount')]",
+    "osType": {
+      "publisher": "Canonical",
+      "offer": "UbuntuServer",
+      "sku": "14.04.4-LTS",
+      "version": "latest"
+    },
+    "diskCaching": "ReadOnly",
+    "fileroot": "https://.../postgresha/"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[variables('vnetName')]",
+      "apiVersion": "2015-06-15",
+      "location": "[resourceGroup().location]",
+      "tags": { },
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.0.0.0/16"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[variables('zookeeperNetName')]",
+            "properties": {
+              "addressPrefix": "[concat(variables('zookeeperNetPrefix'), '0/24')]"
+            }
+          },
+          {
+            "name": "[variables('postgresNetName')]",
+            "properties": {
+              "addressPrefix": "[concat(variables('postgresNetPrefix'), '0/24')]"
+            }
+          }
+        ]
+      },
+      "dependsOn": [ ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[concat(copyIndex(), 'zk', parameters('clusterName'))]",
+      "apiVersion": "2015-06-15",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "zookeeperStorageLoop",
+        "count": "[variables('zookeeperInstanceCount')]"
+      },
+      "properties": {
+        "accountType": "Standard_LRS"
+      }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[concat(copyIndex(), 'pg', parameters('clusterName'))]",
+      "apiVersion": "2015-06-15",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "postgresStorageLoop",
+        "count": "[variables('postgresInstanceCount')]"
+      },
+      "properties": {
+        "accountType": "Premium_LRS"
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[variables('ipName')]",
+      "apiVersion": "2016-03-30",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "publicIPAllocationMethod": "Dynamic",
+        "dnsSettings": {
+          "domainNameLabel": "[parameters('clusterName')]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/availabilitySets",
+      "name": "postgresAvailabilitySet",
+      "apiVersion": "2015-05-01-preview",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "platformFaultDomainCount": 3,
+        "platformUpdateDomainCount": 3
+      }
+    },
+    {
+      "type": "Microsoft.Compute/availabilitySets",
+      "name": "zookeeperAvailabilitySet",
+      "apiVersion": "2015-05-01-preview",
+      "location": "[resourceGroup().location]",
+      "properties": { }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat('zookeeper', copyIndex(), '-nic')]",
+      "apiVersion": "2015-05-01-preview",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "zookeeperNicLoop",
+        "count": "[variables('zookeeperInstanceCount')]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "zookeeperIp",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[concat(variables('zookeeperNetPrefix'), add(variables('zookeeperNetStartIP'), copyIndex()))]",
+              "subnet": {
+                "id": "[concat(variables('vnetId'), '/subnets/', variables('zookeeperNetName'))]"
+              }
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[variables('lbId')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat('zookeeper', copyIndex())]",
+      "apiVersion": "2015-05-01-preview",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "zookeeperVmLoop",
+        "count": "[variables('zookeeperInstanceCount')]"
+      },
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', 'zookeeperAvailabilitySet')]"
+        },
+        "hardwareProfile": {
+          "vmSize": "Standard_A0"
+        },
+        "osProfile": {
+          "computerName": "[concat('zookeeper', copyIndex())]",
+          "adminUsername": "[parameters('adminUserName')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "Canonical",
+            "offer": "UbuntuServer",
+            "sku": "14.04.4-LTS",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "osdisk",
+            "vhd": {
+              "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', copyIndex(), 'zk', parameters('clusterName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob, 'vhds/', 'zookeeperosdisk', copyIndex(), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat('zookeeper', copyIndex(), '-nic'))]"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "zookeeperStorageLoop",
+        "[concat('Microsoft.Storage/storageAccounts/', copyIndex(), 'zk', parameters('clusterName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', 'zookeeper', copyIndex(), '-nic')]",
+        "[concat('Microsoft.Compute/availabilitySets/', 'zookeeperAvailabilitySet')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat('zookeeper', copyIndex(), '/zookeeperExtension')]",
+      "apiVersion": "2015-05-01-preview",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "zookeeperExtLoop",
+        "count": "[variables('zookeeperInstanceCount')]"
+      },
+      "properties": {
+        "publisher": "Microsoft.OSTCExtensions",
+        "type": "CustomScriptForLinux",
+        "typeHandlerVersion": "1.2",
+        "settings": {
+          "fileUris": [
+            "[concat(variables('fileroot'), 'zookeeper_startup_existing_net.sh')]"
+          ],
+          "commandToExecute": "[concat('./zookeeper_startup_existing_net.sh ', copyIndex(), ' ', variables('zookeeperInstanceCount'), ' ', variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP'))]"
+        }
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', 'zookeeper', copyIndex())]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[concat('postgres', copyIndex(), '-nic')]",
+      "apiVersion": "2015-05-01-preview",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "postgresNicLoop",
+        "count": "[variables('postgresInstanceCount')]"
+      },
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "postgresIp",
+            "properties": {
+              "privateIPAllocationMethod": "Static",
+              "privateIPAddress": "[concat(variables('postgresNetPrefix'), add(variables('postgresNetStartIP'), copyIndex()))]",
+              "subnet": {
+                "id": "[concat(variables('vnetId'), '/subnets/', variables('postgresNetName'))]"
+              },
+              "loadBalancerBackendAddressPools": [
+                {
+                  "id": "[concat(variables('lbId'), '/backendAddressPools/loadBalancerBackEnd')]"
+                }
+              ],
+              "loadBalancerInboundNatRules": [
+                {
+                  "id": "[concat(variables('lbId'), '/inboundNatRules/postgresSsh', copyIndex())]"
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[variables('lbId')]"
+      ]
+    },
+    {
+      "apiVersion": "2015-01-01",
+      "name": "[concat('postgresDataDisksConfigForVM', copyIndex())]",
+      "type": "Microsoft.Resources/deployments",
+      "copy": {
+        "name": "postgresDataDisksConfigLoop",
+        "count": "[variables('postgresInstanceCount')]"
+      },
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[concat(variables('fileroot'), 'disksSelector.json')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "numDataDisks": {
+            "value": "[parameters('dataDiscCount')]"
+          },
+          "diskStorageAccountName": {
+            "value": "[concat(copyIndex(), 'pg', parameters('clusterName'))]"
+          },
+          "diskCaching": {
+            "value": "[variables('diskCaching')]"
+          },
+          "diskSizeGB": {
+            "value": "[parameters('dataDiskSizeInGB')]"
+          },
+          "storageUrlSuffix": {
+            "value": "[variables('storageEndpoint')]"
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat('postgres', copyIndex())]",
+      "apiVersion": "2015-05-01-preview",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "postgresVmLoop",
+        "count": "[variables('postgresInstanceCount')]"
+      },
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', 'postgresAvailabilitySet')]"
+        },
+        "hardwareProfile": {
+          "vmSize": "[parameters('instanceSize')]"
+        },
+        "osProfile": {
+          "computerName": "[concat('postgres', copyIndex())]",
+          "adminUsername": "[parameters('adminUserName')]",
+          "adminPassword": "[parameters('adminPassword')]"
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "Canonical",
+            "offer": "UbuntuServer",
+            "sku": "14.04.4-LTS",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "osdisk",
+            "vhd": {
+              "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', copyIndex(), 'pg', parameters('clusterName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob, 'vhds/', 'postgresosdisk', copyIndex(), '.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          },
+          "dataDisks": "[reference(concat('postgresDataDisksConfigForVM', copyIndex())).outputs.dataDiskArray.value]"
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat('postgres', copyIndex(), '-nic'))]"
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "postgresStorageLoop",
+        "zookeeperVmLoop",
+        "zookeeperExtLoop",
+        "postgresDataDisksConfigLoop",
+        "[concat('Microsoft.Storage/storageAccounts/', copyIndex(), 'pg', parameters('clusterName'))]",
+        "[concat('Microsoft.Network/networkInterfaces/', 'postgres', copyIndex(), '-nic')]",
+        "[concat('Microsoft.Compute/availabilitySets/', 'postgresAvailabilitySet')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines/extensions",
+      "name": "[concat('postgres', copyIndex(), '/postgresExtension')]",
+      "apiVersion": "2015-05-01-preview",
+      "location": "[resourceGroup().location]",
+      "copy": {
+        "name": "postgresExtLoop",
+        "count": "[variables('postgresInstanceCount')]"
+      },
+      "properties": {
+        "publisher": "Microsoft.OSTCExtensions",
+        "type": "CustomScriptForLinux",
+        "typeHandlerVersion": "1.2",
+        "settings": {
+          "fileUris": [
+            "[concat(variables('fileroot'), 'setup-raid.sh')]",
+            "[concat(variables('fileroot'), 'start-pg.sh')]"
+          ],
+          "commandToExecute": "[concat('./postgres_startup_existing_net.sh ', parameters('clusterName'), ' ', variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP'), ' ', variables('zookeeperInstanceCount'), ' ', variables('postgresNetPrefix'), variables('postgresNetStartIP'), ' ', variables('postgresInstanceCount'), ' ', copyIndex(), ' ', parameters('adminUsername'), ' \"', parameters('adminPassword'), '\" ')]"
+        }
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', 'postgres', copyIndex())]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/loadBalancers",
+      "name": "[variables('lbName')]",
+      "apiVersion": "2015-06-15",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "availabilitySet": {
+          "id": "[resourceId('Microsoft.Compute/availabilitySets', 'postgresHaAvailabilitySet')]"
+        },
+        "frontendIPConfigurations": [
+          {
+            "name": "loadBalancerFrontEnd",
+            "properties": {
+              "publicIPAddress": {
+                "id": "[variables('ipId')]"
+              }
+            }
+          }
+        ],
+        "backendAddressPools": [
+          {
+            "name": "loadBalancerBackEnd"
+          }
+        ],
+        "loadBalancingRules": [
+          {
+            "name": "postgresLbRule",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(variables('lbId'), '/frontendIPConfigurations/loadBalancerFrontEnd')]"
+              },
+              "backendAddressPool": {
+                "id": "[concat(variables('lbId'), '/backendAddressPools/loadBalancerBackEnd')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 5432,
+              "backendPort": 5000,
+              "probe": {
+                "id": "[concat(variables('lbId'), '/probes/postgresProbe')]"
+              }
+            }
+          }
+        ],
+        "probes": [
+          {
+            "name": "postgresProbe",
+            "properties": {
+              "protocol": "Tcp",
+              "port": 5000,
+              "intervalInSeconds": 5,
+              "numberOfProbes": 2
+            }
+          }
+        ],
+        "inboundNatRules": [
+          {
+            "name": "postgresSsh0",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(variables('lbId'), '/frontendIPConfigurations/loadBalancerFrontEnd')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 10110,
+              "backendPort": 22
+            }
+          },
+          {
+            "name": "postgresSsh1",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(variables('lbId'), '/frontendIPConfigurations/loadBalancerFrontEnd')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 10111,
+              "backendPort": 22
+            }
+          },
+          {
+            "name": "postgresSsh2",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(variables('lbId'), '/frontendIPConfigurations/loadBalancerFrontEnd')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 10112,
+              "backendPort": 22
+            }
+          },
+          {
+            "name": "postgresSsh3",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(variables('lbId'), '/frontendIPConfigurations/loadBalancerFrontEnd')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 10113,
+              "backendPort": 22
+            }
+          },
+          {
+            "name": "postgresSsh4",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(variables('lbId'), '/frontendIPConfigurations/loadBalancerFrontEnd')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 10114,
+              "backendPort": 22
+            }
+          },
+          {
+            "name": "postgresSsh5",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(variables('lbId'), '/frontendIPConfigurations/loadBalancerFrontEnd')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 10115,
+              "backendPort": 22
+            }
+          },
+          {
+            "name": "postgresSsh6",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(variables('lbId'), '/frontendIPConfigurations/loadBalancerFrontEnd')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 10116,
+              "backendPort": 22
+            }
+          },
+          {
+            "name": "postgresSsh7",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(variables('lbId'), '/frontendIPConfigurations/loadBalancerFrontEnd')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 10117,
+              "backendPort": 22
+            }
+          },
+          {
+            "name": "postgresSsh8",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(variables('lbId'), '/frontendIPConfigurations/loadBalancerFrontEnd')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 10118,
+              "backendPort": 22
+            }
+          },
+          {
+            "name": "postgresSsh9",
+            "properties": {
+              "frontendIPConfiguration": {
+                "id": "[concat(variables('lbId'), '/frontendIPConfigurations/loadBalancerFrontEnd')]"
+              },
+              "protocol": "Tcp",
+              "frontendPort": 10119,
+              "backendPort": 22
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[variables('ipId')]"
+      ]
+    }
+  ],
+  "outputs":
+  {
+     "fqdn": {
+      "type": "string",
+      "value": "[reference(variables('ipName')).dnsSettings.fqdn]"
+    },
+    "port": {
+      "type": "int",
+      "value": 5432
+    },
+    "postgresUser": {
+      "type": "string",
+      "value": "admin"
+    },
+    "postgresUserPassword": {
+      "type": "securestring",
+      "value": "[parameters('adminPassword')]"
+    }
+  }
+}

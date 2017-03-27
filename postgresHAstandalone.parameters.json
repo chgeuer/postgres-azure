@@ -1,0 +1,21 @@
+﻿{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "environment": {
+      "value": "Azure German Cloud"
+    },
+    "clusterName": {
+      "value": "tani2"
+    },
+    "instanceSize": {
+      "value": "Standard_DS2_v2"
+    },
+    "adminUsername": {
+      "value": "director"
+    },
+    "adminPassword": {
+      "value": "Start1234!!!"
+    }
+  }
+}

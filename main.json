@@ -1,0 +1,88 @@
+{
+    "_comments": [ "https://docs.microsoft.com/en-us/azure/templates/microsoft.compute/disks" ],
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "tenantName": {
+            "type": "string",
+            "defaultValue": "foo"
+        }
+    },
+    "variables": {
+        "commonSettings": {
+            "tenantName": "[parameters('tenantName')]",
+            "constants": {
+                "apiVersions": {
+                    "availabilitySets": "2016-04-30-preview"
+                }
+            },
+            "vnet": { 
+                "name": "[concat(parameters('tenantName'),'-vnet')]",
+                "address": "10.0.0.0/16",
+                "subnet": {
+                    "postgresql": {
+                        "name": "['subnet-', 'postgresql')]",
+                        "nsgName": "['nsg-', 'postgresql')]",
+                        "addressRangePrefix": "10.0.0",
+                        "address": "10.0.0.0/24"
+                    },
+                    "zookeeper": {
+                        "name": "[concat('subnet-', 'zookeeper')]",
+                        "nsgName": "[concat('nsg-', 'zookeeper')]",
+                        "addressRangePrefix": "10.0.1",
+                        "address": "10.0.1.0/24"
+                    }
+                }
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[concat(variables('commonSettings').tenantName, '-publicip')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic",
+                "dnsSettings": {
+                    "domainNameLabel": "[concat(variables('commonSettings').tenantName, '-publicip')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('commonSettings').vnet.name]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [ "[variables('commonSettings').vnet.address]" ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('commonSettings').vnet.subnet.postgresql.name]",
+                        "properties": {
+                            "addressPrefix": "[variables('commonSettings').vnet.subnet.postgresql.address)]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('commonSettings').vnet.subnet.jumphost.nsgName)]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Compute/availabilitySets",
+            "name": "[concat(variables('commonSettings').tenantName, '-avset')]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "platformFaultDomainCount": 3,
+                "platformUpdateDomainCount": 5,
+                "managed": true
+            }
+        }
+    ],
+    "outputs": {
+    }
+}
