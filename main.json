@@ -71,13 +71,60 @@
         {
             "type": "Microsoft.Network/publicIPAddresses",
             "name": "[concat(variables('commonSettings').tenantName, '-publicip')]",
-            "apiVersion": "2015-05-01-preview",
+            "apiVersion": "2016-09-01",
             "location": "[resourceGroup().location]",
             "properties": {
                 "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 30,
                 "dnsSettings": {
                     "domainNameLabel": "[concat(variables('commonSettings').tenantName, '-publicip')]"
                 }
+            }
+        },
+        {
+            "type": "Microsoft.Network/loadBalancers",
+            "name": "loadbalancer-postgres",
+            "apiVersion": "2016-09-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/', concat(variables('commonSettings').tenantName, '-publicip'))]"
+            ],
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "postgresqlFrontendIPConfiguration",
+                        "properties": {
+                            "publicIPAddress": { "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(variables('commonSettings').tenantName, '-publicip'))]" }
+                        }
+                    }
+                ],
+                "backendAddressPools": [ { "name": "postgresqlBackendAddressPool" } ],
+                "probes": [
+                    {
+                        "name": "postgresqlProbe",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "port": 5000,
+                            "intervalInSeconds": 5,
+                            "numberOfProbes": 2
+                        }
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "loadBalancingRule-postgresql",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "frontendPort": 5000,
+                            "backendPort": 5000,
+                            "enableFloatingIP": false,
+                            "idleTimeoutInMinutes": 30,
+                            "frontendIPConfiguration": { "id": "[concat(resourceId('Microsoft.Network/loadBalancers', 'loadbalancer-postgres'), '/frontendIPConfigurations/', 'postgresqlFrontendIPConfiguration')]" },
+                            "backendAddressPool": { "id": "[concat(resourceId('Microsoft.Network/loadBalancers', 'loadbalancer-postgres'), '/backendAddressPools/', 'postgresqlBackendAddressPool')]" },
+                            "probe": { "id": "[concat(resourceId('Microsoft.Network/loadBalancers', 'loadbalancer-postgres'), '/probes/', 'postgresqlProbe')]" }
+                        }
+                    }
+                ]
             }
         },
         {
@@ -193,7 +240,7 @@
         },
         {
             "type": "Microsoft.Compute/availabilitySets",
-            "name": "[concat(variables('commonSettings').tenantName, '-avset')]",
+            "name": "[concat(variables('commonSettings').tenantName, '-availabilitySet')]",
             "apiVersion": "2016-04-30-preview",
             "location": "[resourceGroup().location]",
             "properties": {
