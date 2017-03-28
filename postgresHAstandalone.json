@@ -13,14 +13,12 @@
     "clusterName": {
       "type": "string"
     },
-    "instanceCount": {
+    "postgresqlInstanceCount": {
       "defaultValue": 2,
       "minValue": 2,
-      "maxValue": 200,
+      "maxValue": 10,
       "type": "int",
-      "metadata": {
-        "description": "Number of postgreSQL servers in the cluster."
-      }
+      "metadata": { "description": "Number of postgreSQL servers in the cluster." }
     },
     "instanceSize": {
       "type": "string",
@@ -262,6 +260,9 @@
       "name": "[concat('zookeeper', copyIndex(), '/zookeeperExtension')]",
       "apiVersion": "2015-05-01-preview",
       "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[concat('Microsoft.Compute/virtualMachines/', 'zookeeper', copyIndex())]"
+      ],
       "copy": {
         "name": "zookeeperExtLoop",
         "count": "[variables('zookeeperInstanceCount')]"
@@ -276,10 +277,7 @@
           ],
           "commandToExecute": "[concat('./start-zk.sh ', copyIndex(), ' ', variables('zookeeperInstanceCount'), ' ', variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP'))]"
         }
-      },
-      "dependsOn": [
-        "[concat('Microsoft.Compute/virtualMachines/', 'zookeeper', copyIndex())]"
-      ]
+      }
     },
     {
       "type": "Microsoft.Network/networkInterfaces",

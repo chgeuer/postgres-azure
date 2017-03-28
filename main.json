@@ -4,7 +4,7 @@
     "parameters": {
         "tenantName": {
             "type": "string",
-            "defaultValue": "foo"
+            "defaultValue": "barbaz"
         },
         "adminUsername": {
             "type": "string",
@@ -15,6 +15,15 @@
             "type": "string",
             "defaultValue": "ssh-rsa AAAAB3NzaC1yc2EAAAABJQAAAQEAk/ViUPrGp7KoJLuN2PgofgMyw7SN9zfLYFDDR0TRYa8cOvJlE8NdZYt6Oqa4aL/fslKr9bmlMCdawhZRL7sHccIIS0I0zG7iD15rQL3/Y5aZOf3ML+bebpSj+SE5OeHT9iobgsYpK8gq72d8tmZZAfKhx6fRJsgC2j2xXH/GveoZ5GkHnhJUYuYPmNjEb/PK7LT43XuP+E9Rderr3LPUTuBeGVW9do0HS7X8I2uTn0+BqgkZLOO4FCnSXxh1u6fuD++ZgOZVmB6Q1xEdHSA7LLnPkjDZqbWezLIh5cSdNPUW2JG7tMxQTAZzVoNMb6vAVsfslB16rqZQ21EdIq+0pw== chgeuer-dcos-1",
             "metadata": { "description": "Admin SSH key for the Virtual Machines." }
+        },
+        "postgresqlUsername": {
+            "type": "string",
+            "defaultValue": "admin",
+            "metadata": { "description": "PostgreSQL user name" }
+        },
+        "postgresqlPassword": {
+            "type": "securestring",
+            "metadata": { "description": "PostgreSQL password" }
         },
         "postgresqlInstanceCount": {
             "defaultValue": 2, "minValue": 2, "maxValue": 10, "type": "int",
@@ -31,17 +40,22 @@
             ],
             "type": "string",
             "metadata": { "description": "Size of the postgreSQL server in the cluster." }
+        },
+        "postgresAzureVersion": {
+            "defaultValue": "master",
+            "type": "string"
         }
     },
     "variables": {
         "commonSettings": {
+            "baseUrl": "[concat('https://raw.githubusercontent.com/chgeuer/postgres-azure/',parameters('postgresAzureVersion'),'/')]",
             "tenantName": "[parameters('tenantName')]",
             "constants": {
                 "apiVersions": {
                     "availabilitySets": "2016-04-30-preview"
                 }
             },
-            "vnet": { 
+            "vnet": {  
                 "name": "[concat(parameters('tenantName'),'-vnet')]",
                 "address": "10.0.0.0/16",
                 "subnet": {
@@ -65,7 +79,7 @@
                 "patroni": "6eb2e2114453545256ac7cbfec55bda285ffb955",
                 "postgres": "9.6"
             },
-            "instanceCount": {
+            "instanceCount": { 
                 "postgresql": 2,
                 "postgresqlDataDiskCount": 3,
                 "zookeeper": 2
@@ -334,8 +348,9 @@
             "apiVersion": "2016-04-30-preview",
             "location": "[resourceGroup().location]",
             "dependsOn": [
+                "[concat('Microsoft.Compute/availabilitySets/', concat('availabilitySet-postgresql-', variables('commonSettings').tenantName))]",
                 "[concat('Microsoft.Network/networkInterfaces/', concat('networkInterface-', 'postgresql', '-', copyIndex()))]",
-                "[concat('Microsoft.Compute/availabilitySets/', concat('availabilitySet-postgresql-', variables('commonSettings').tenantName))]"
+                "[concat('Microsoft.Compute/disks/', concat('osDisk-', 'postgresql', '-', copyIndex()))]"
             ],
             "properties": {
                 "hardwareProfile": { "vmSize": "[parameters('postgresqlInstanceSize')]" },
@@ -357,21 +372,47 @@
                         }
                     }
                 },
+                "storageProfile": {
+                    "imageReference": 
+                    {
+                        "publisher": "[variables('commonSettings').vm.postgresql.publisher]",
+                        "offer": "[variables('commonSettings').vm.postgresql.offer]",
+                        "sku": "[variables('commonSettings').vm.postgresql.sku]",
+                        "version": "[variables('commonSettings').vm.postgresql.version]"
+                    },
+                    "osDisk": {
+                        "name": "[concat('osDisk-', 'postgresql', '-', copyIndex())]",
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
                 "networkProfile": { 
                     "networkInterfaces": [ 
                         { 
                             "id": "[resourceId('Microsoft.Network/networkInterfaces', concat('networkInterface-', 'postgresql', '-', copyIndex()))]" 
                         } 
                     ] 
-                },
-                "storageProfile": {
-                    "osDisk": {
-                        "name": "[concat('osDisk-', 'postgresql', '-', copyIndex())]",
-                        "osType": "Linux",
-                        "caching": "ReadWrite",
-                        "createOption": "Attach",
-                        "managedDisk": { "id": "[resourceId('Microsoft.Compute/disks', concat('osDisk-', 'postgresql', '-', copyIndex()))]" }
-                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat('virtualMachine-', 'postgresql', '-', copyIndex(), '/extension')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [ "[concat('Microsoft.Compute/virtualMachines/', concat('virtualMachine-', 'postgresql', '-', copyIndex()))]" ],
+            "copy": { "name": "postgresqlVmExtensionCopy", "count": "[variables('commonSettings').instanceCount.postgresql]" },
+            "properties": {
+                "publisher": "Microsoft.OSTCExtensions",
+                "type": "CustomScriptForLinux",
+                "typeHandlerVersion": "1.2",
+                "settings": {
+                    "fileUris": [
+                        "[concat(variables('baseUrl'), 'scripts/setup-raid.sh')]",
+                        "[concat(variables('baseUrl'), 'scripts/start-zk.sh')]",
+                        "[concat(variables('baseUrl'), 'scripts/start-pg.sh')]"
+                    ],
+                    "commandToExecute": "[concat('./start-pg.sh ', parameters('clusterName'), ' ', concat(variables('commonSettings').vnet.subnet.zookeeper.addressRangePrefix, '.10'), ' ',  variables('commonSettings').instanceCount.zookeeper, ' ',  concat(variables('commonSettings').vnet.subnet.postgresql.addressRangePrefix, '.10'), ' ',  variables('commonSettings').instanceCount.postgresql, ' ',  copyIndex(), ' ',  parameters('postgresqlUsername'), ' ',   concat('\"', parameters('postgresqlPassword'), '\"'), ' ' variables('commonSettings').softwareversions.patroni, ' ',variables('commonSettings').softwareversions.postgres )]"
                 }
             }
         }

@@ -27,19 +27,31 @@ function createIp {
 # "commandToExecute": "[concat('./start-zk.sh ', 
 #                              copyIndex(), ' ', 
 #                              variables('zookeeperInstanceCount'), ' ', 
-#                              variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP'))]"
+#                              variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP'), ' ' 
+#                              variables('commonSettings').softwareversions.zookeeper, ' ',
+#                              variables('commonSettings').softwareversions.java4zookeeper1, ' ',
+#                              variables('commonSettings').softwareversions.java4zookeeper2)]"
+
+
+./start-zk.sh 1
 
 #myIndex=$1
 #instanceCount=$2
 #startIp=$3
+#zkversion=$4
+#javaversion1=$5
+#javaversion2=$6
+
+
+
 
 myIndex=1
 instanceCount=3
 startIp=10.0.0.10
-
 zkversion=3.4.9
 javaversion1=7u75
 javaversion2=b13
+
 
 apt-get -y install jq supervisor
 

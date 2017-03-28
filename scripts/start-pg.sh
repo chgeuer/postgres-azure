@@ -30,13 +30,13 @@ function createIp {
 
 # "commandToExecute": "[concat('./start-pg.sh ', 
 #                       parameters('clusterName'), ' ', 
-#                       variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP'), ' ',  
-#                       variables('zookeeperInstanceCount'), ' ',  
-#                       variables('postgresNetPrefix'), variables('postgresNetStartIP'), ' ',  
-#                       variables('postgresInstanceCount'), ' ',  
+#                       concat(variables('commonSettings').vnet.subnet.zookeeper.addressRangePrefix, '.10'), ' ',  
+#                       variables('commonSettings').instanceCount.zookeeper, ' ',  
+#                       concat(variables('commonSettings').vnet.subnet.postgresql.addressRangePrefix, '.10'), ' ',  
+#                       variables('commonSettings').instanceCount.postgresql, ' ',  
 #                       copyIndex(), ' ',  
-#                       parameters('adminUsername'), 
-#                       ' \"', parameters('adminPassword'), '\" ', 
+#                       parameters('postgresqlUsername'), ' ',   
+#                       concat('\"', parameters('postgresqlPassword'), '\"'), ' ' 
 #                       variables('commonSettings').softwareversions.patroni, ' ',
 #                       variables('commonSettings').softwareversions.postgres )]"
 
@@ -46,11 +46,10 @@ amountZooKeepers=$3
 startIpPostgres=$4
 amountPostgres=$5
 myIndex=$6
-adminUsername=$7
-adminPassword=$8
+postgresqlUsername=$7
+postgresqlPassword=$8
 patroniversion=$9
 pgversion=$10
-
 
 patroniDir="/usr/local/patroni-${patroniversion}"
 patroniCfg="${patroniDir}/postgres.yml"
@@ -62,8 +61,8 @@ cat > startup.log <<-EOF
 	Zookeepers:          $amountZooKeepers
 	Postgres start IP:   $startIpPostgres
 	Postgres:            $amountPostgres
-	Admin user:          $adminUsername
-	Admin password:      $adminPassword
+	PostgreSQL user:     $postgresqlUsername
+	PostgreSQL password: $postgresqlPassword
 	MyIndex:             $myIndex
 	patroniversion:      $patroniversion
 EOF
@@ -228,7 +227,7 @@ if [[ $myIndex -eq 0 ]]; then
 	  - host all all 0.0.0.0/0 md5
 	  users:
 	    admin:
-	      password: "$adminPassword"
+	      password: "$postgresqlPassword"
 	      options:
 	        - createrole
 	        - createdb
@@ -265,19 +264,19 @@ cat >> $patroniCfg <<-EOF
 	    - data-checksums
 	  pg_rewind:
 	    username: postgres
-	    password: "$adminPassword"
+	    password: "$postgresqlPassword"
 	  pg_hba:
 	    - host replication all 0.0.0.0/0 md5
 	    - host all all 0.0.0.0/0 md5
 	  replication:
 	    username: replicator
-	    password: "$adminPassword"
+	    password: "$postgresqlPassword"
 	  superuser:
 	    username: postgres
-	    password: "$adminPassword"
+	    password: "$postgresqlPassword"
 	  admin:
 	    username: admin
-	    password: "$adminPassword"
+	    password: "$postgresqlPassword"
 	  create_replica_method:
 	    - basebackup
 	  recovery_conf:
@@ -299,10 +298,10 @@ cat >> $patroniCfg <<-EOF
 	    authentication:
 	      replication:
 	        username: replicator
-	        password: "$adminPassword"
+	        password: "$postgresqlPassword"
 	      superuser:
 	        username: postgres
-	        password: "$adminPassword"
+	        password: "$postgresqlPassword"
 	    parameters:
 	      unix_socket_directories: '.'
 	EOF
@@ -346,7 +345,7 @@ chmod +x ${patroniDir}/patroni_start.sh
 cat > /etc/supervisor/conf.d/patroni.conf <<-EOF
 	[program:patroni]
 	command=${patroniDir}/patroni_start.sh
-	user=$adminUsername
+	user=$postgresqlUsername
 	autostart=true
 	autorestart=true
 	stderr_logfile=/var/log/patroni.err.log
