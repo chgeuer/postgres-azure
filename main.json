@@ -280,6 +280,20 @@
                             "destinationAddressPrefix": "[variables('commonSettings').vnet.subnet.zookeeper.address]",
                             "destinationPortRange": "3888"
                         }
+                    },
+                    {
+                        "name": "ssh-in",
+                        "properties": {
+                            "priority": 103,
+                            "description": "Allow TCP/22 Inbound",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "protocol": "Tcp",
+                            "sourceAddressPrefix": "*",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "[variables('commonSettings').vnet.subnet.postgresql.address]",
+                            "destinationPortRange": "22"
+                        }
                     }
                 ]
             }
@@ -582,7 +596,7 @@
                     "fileUris": [
                         "[concat(variables('commonSettings').baseUrl, 'scripts/start-zk.sh')]"
                     ],
-                    "commandToExecute": "[concat('./start-zk.sh', ' ', copyIndex(), ' ', variables('zookeeperInstanceCount'), ' ', concat(variables('commonSettings').vnet.subnet.zookeeper.addressRangePrefix, '.10'), ' ', variables('commonSettings').softwareversions.zookeeper, ' ', variables('commonSettings').softwareversions.java4zookeeper1, ' ', variables('commonSettings').softwareversions.java4zookeeper2)]"
+                    "commandToExecute": "[concat('./start-zk.sh', ' ', copyIndex(), ' ', variables('commonSettings').instanceCount.zookeeper, ' ', concat(variables('commonSettings').vnet.subnet.zookeeper.addressRangePrefix, '.10'), ' ', variables('commonSettings').softwareversions.zookeeper, ' ', variables('commonSettings').softwareversions.java4zookeeper1, ' ', variables('commonSettings').softwareversions.java4zookeeper2)]"
                 }
             }
         }

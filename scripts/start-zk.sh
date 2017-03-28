@@ -26,11 +26,17 @@ function createIp {
 
 # "commandToExecute": "[concat('./start-zk.sh', ' ', 
 #                              copyIndex(), ' ', 
-#                              variables('zookeeperInstanceCount'), ' ', 
-#                              concat(variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP')), ' ' 
+#                              variables('commonSettings').instanceCount.zookeeper, ' ', 
+#                              concat(variables('commonSettings').vnet.subnet.zookeeper.addressRangePrefix, '.10'), ' ', 
 #                              variables('commonSettings').softwareversions.zookeeper, ' ',
 #                              variables('commonSettings').softwareversions.java4zookeeper1, ' ',
 #                              variables('commonSettings').softwareversions.java4zookeeper2)]"
+
+
+
+
+
+
 
 myIndex=$1
 zookeeperInstanceCount=$2
