@@ -18,7 +18,7 @@
         },
         "postgresqlUsername": {
             "type": "string",
-            "defaultValue": "admin",
+            "defaultValue": "pgadmin",
             "metadata": { "description": "PostgreSQL user name" }
         },
         "postgresqlPassword": {
@@ -77,7 +77,7 @@
                 "zookeeper": "3.4.9",
                 "java4zookeeper1": "7u75", "java4zookeeper2": "b13",
                 "patroni": "6eb2e2114453545256ac7cbfec55bda285ffb955",
-                "postgres": "9.6"
+                "postgres": "9.5"
             },
             "instanceCount": { 
                 "postgresql": 2,
@@ -184,23 +184,9 @@
             "properties": {
                 "securityRules": [
                     {
-                        "name": "http-in",
-                        "properties": {
-                            "priority": 100,
-                            "description": "Allow TCP/80 Inbound (Internet->PostgreSQL Server)",
-                            "access": "Allow",
-                            "direction": "Inbound",
-                            "protocol": "Tcp",
-                            "sourceAddressPrefix": "Internet",
-                            "sourcePortRange": "*",
-                            "destinationAddressPrefix": "[variables('commonSettings').vnet.subnet.postgresql.address]",
-                            "destinationPortRange": "80"
-                        }
-                    },
-                    {
                         "name": "ssh-in",
                         "properties": {
-                            "priority": 101,
+                            "priority": 100,
                             "description": "Allow TCP/22 Inbound (Internet->PostgreSQL Server)",
                             "access": "Allow",
                             "direction": "Inbound",
@@ -209,6 +195,20 @@
                             "sourcePortRange": "*",
                             "destinationAddressPrefix": "[variables('commonSettings').vnet.subnet.postgresql.address]",
                             "destinationPortRange": "22"
+                        }
+                    },
+                    {
+                        "name": "postgresql-in",
+                        "properties": {
+                            "priority": 101,
+                            "description": "Allow TCP/80 Inbound (Internet->PostgreSQL Server)",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "protocol": "Tcp",
+                            "sourceAddressPrefix": "Internet",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "[variables('commonSettings').vnet.subnet.postgresql.address]",
+                            "destinationPortRange": "5000"
                         }
                     }
                 ]

@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# /var/lib/waagent/Microsoft.OSTCExtensions.CustomScriptForLinux-1.2.2.0/download/0
+# /usr/local/patroni-6eb2e2114453545256ac7cbfec55bda285ffb955
+
+# http://jvns.ca/blog/2017/03/26/bash-quirks/
+# https://google.github.io/styleguide/shell.xml#Checking_Return_Values
+# http://www.kfirlavi.com/blog/2012/11/14/defensive-bash-programming/
+
 function createIp {
   startIpInput=$1
   index=$2
@@ -49,7 +56,7 @@ myIndex=$6
 postgresqlUsername=$7
 postgresqlPassword=$8
 patroniversion=$9
-pgversion=$10
+pgversion=${10}
 
 patroniDir="/usr/local/patroni-${patroniversion}"
 patroniCfg="${patroniDir}/postgres.yml"
@@ -57,13 +64,14 @@ hacfgFile="${patroniDir}/postgresha.cfg"
 
 cat > startup.log <<-EOF
 	Cluster name:        $clusterName
-	Zookeepers start IP: $startIpZooKeepers
-	Zookeepers:          $amountZooKeepers
-	Postgres start IP:   $startIpPostgres
-	Postgres:            $amountPostgres
-	PostgreSQL user:     $postgresqlUsername
-	PostgreSQL password: $postgresqlPassword
-	MyIndex:             $myIndex
+	startIpZooKeepers:   $startIpZooKeepers
+	amountZooKeepers:    $amountZooKeepers
+	startIpPostgres:     $startIpPostgres
+	amountPostgres:      $amountPostgres
+	myIndex:             $myIndex
+	postgresqlUsername:  $postgresqlUsername
+	postgresqlPassword:  $postgresqlPassword
+	pgversion:           $pgversion
 	patroniversion:      $patroniversion
 EOF
 
@@ -364,3 +372,5 @@ EOF
 service supervisor restart
 supervisorctl reread
 supervisorctl update
+
+exit 0

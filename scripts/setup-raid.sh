@@ -57,10 +57,10 @@ do
 	echo 0 > "/sys/block/$i/queue/rotational"
 done
 
-echo 30 > /proc/sys/vm/vfs_cache_pressure
-echo never > /sycs/kernel/mm/transparent_hugepage/enabled 
-echo 20 > /proc/sys/vm/dirty_ratio
-echo 10 > /proc/sys/vm/dirty_background_ratio
+echo 30 >    /proc/sys/vm/vfs_cache_pressure
+echo never > /sys/kernel/mm/transparent_hugepage/enabled 
+echo 20 >    /proc/sys/vm/dirty_ratio
+echo 10 >    /proc/sys/vm/dirty_background_ratio
 
 # Remove xvdb/sdb from fstab
 chmod 644 /etc/fstab
