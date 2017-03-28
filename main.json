@@ -412,7 +412,7 @@
                         "[concat(variables('baseUrl'), 'scripts/start-zk.sh')]",
                         "[concat(variables('baseUrl'), 'scripts/start-pg.sh')]"
                     ],
-                    "commandToExecute": "[concat('./start-pg.sh ', parameters('clusterName'), ' ', concat(variables('commonSettings').vnet.subnet.zookeeper.addressRangePrefix, '.10'), ' ',  variables('commonSettings').instanceCount.zookeeper, ' ',  concat(variables('commonSettings').vnet.subnet.postgresql.addressRangePrefix, '.10'), ' ',  variables('commonSettings').instanceCount.postgresql, ' ',  copyIndex(), ' ',  parameters('postgresqlUsername'), ' ',   concat('\"', parameters('postgresqlPassword'), '\"'), ' ' variables('commonSettings').softwareversions.patroni, ' ',variables('commonSettings').softwareversions.postgres )]"
+                    "commandToExecute": "[concat('./start-pg.sh', ' ', parameters('clusterName'), ' ', concat(variables('commonSettings').vnet.subnet.zookeeper.addressRangePrefix, '.10'), ' ', variables('commonSettings').instanceCount.zookeeper, ' ', concat(variables('commonSettings').vnet.subnet.postgresql.addressRangePrefix, '.10'), ' ', variables('commonSettings').instanceCount.postgresql, ' ', copyIndex(), ' ', parameters('postgresqlUsername'), ' ', concat('\"', parameters('postgresqlPassword'), '\"'), ' ', variables('commonSettings').softwareversions.patroni, ' ', variables('commonSettings').softwareversions.postgres)]"
                 }
             }
         }
