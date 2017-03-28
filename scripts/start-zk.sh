@@ -24,33 +24,28 @@ function createIp {
   printf "%s" "$ip"
 }
 
-# "commandToExecute": "[concat('./start-zk.sh ', 
+# "commandToExecute": "[concat('./start-zk.sh', ' ', 
 #                              copyIndex(), ' ', 
 #                              variables('zookeeperInstanceCount'), ' ', 
-#                              variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP'), ' ' 
+#                              concat(variables('zookeeperNetPrefix'), variables('zookeeperNetStartIP')), ' ' 
 #                              variables('commonSettings').softwareversions.zookeeper, ' ',
 #                              variables('commonSettings').softwareversions.java4zookeeper1, ' ',
 #                              variables('commonSettings').softwareversions.java4zookeeper2)]"
 
-
-./start-zk.sh 1
-
-#myIndex=$1
-#instanceCount=$2
-#startIp=$3
-#zkversion=$4
-#javaversion1=$5
-#javaversion2=$6
+myIndex=$1
+zookeeperInstanceCount=$2
+startIp=$3
+zkversion=$4
+javaversion1=$5
+javaversion2=$6
 
 
-
-
-myIndex=1
-instanceCount=3
-startIp=10.0.0.10
-zkversion=3.4.9
-javaversion1=7u75
-javaversion2=b13
+# myIndex=1
+# zookeeperInstanceCount=3
+# startIp=10.0.0.10
+# zkversion=3.4.9
+# javaversion1=7u75
+# javaversion2=b13
 
 
 apt-get -y install jq supervisor
@@ -89,7 +84,7 @@ cat > "$zkbindir/conf/zoo.cfg" <<-EOF
 	syncLimit=2
 EOF
 
-for i in $(seq 1 $instanceCount)
+for i in $(seq 1 $zookeeperInstanceCount)
 do     
 	cat > "$zkbindir/conf/zoo.cfg" <<-EOF 
 		server.$i=$(createIp "$startIp" "$((i-1))"):2888:3888
@@ -119,3 +114,5 @@ EOF
 service supervisor restart
 supervisorctl reread
 supervisorctl update
+
+exit 0

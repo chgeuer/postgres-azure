@@ -39,7 +39,19 @@
                 "Standard_DS11_v2", "Standard_DS12_v2", "Standard_DS13_v2", "Standard_DS14_v2", "Standard_DS15_v2"
             ],
             "type": "string",
-            "metadata": { "description": "Size of the postgreSQL server in the cluster." }
+            "metadata": { "description": "Size of the postgreSQL servers in the cluster." }
+        },
+        "zookeeperInstanceSize": {
+            "defaultValue": "Standard_DS1_v2",
+            "allowedValues": [
+                "Standard_DS1", "Standard_DS2", "Standard_DS3", "Standard_DS4",
+                "Standard_DS11", "Standard_DS12", "Standard_DS13", "Standard_DS14",
+                "Standard_GS1", "Standard_GS2", "Standard_GS3", "Standard_GS4", "Standard_GS5", 
+                "Standard_DS1_v2", "Standard_DS2_v2", "Standard_DS3_v2", "Standard_DS4_v2", "Standard_DS5_v2",
+                "Standard_DS11_v2", "Standard_DS12_v2", "Standard_DS13_v2", "Standard_DS14_v2", "Standard_DS15_v2"
+            ],
+            "type": "string",
+            "metadata": { "description": "Size of the ZooKeeeper servers in the cluster." }
         },
         "postgresAzureVersion": {
             "defaultValue": "master",
@@ -86,6 +98,12 @@
             },
             "vm": {
                 "postgresql": {
+                    "publisher": "Canonical",
+                    "offer": "UbuntuServer",
+                    "sku": "16.04-LTS",
+                    "version": "latest"
+                },
+                "zookeeper": {
                     "publisher": "Canonical",
                     "offer": "UbuntuServer",
                     "sku": "16.04-LTS",
@@ -313,17 +331,6 @@
             }
         },
         {
-            "type": "Microsoft.Compute/availabilitySets",
-            "name": "[concat('availabilitySet-zookeeper-', variables('commonSettings').tenantName)]",
-            "apiVersion": "2016-04-30-preview",
-            "location": "[resourceGroup().location]",
-            "properties": {
-                "platformFaultDomainCount": 3,
-                "platformUpdateDomainCount": 5,
-                "managed": true
-            }
-        },
-        {
             "type": "Microsoft.Network/networkInterfaces",
             "name": "[concat('networkInterface-', 'postgresql', '-', copyIndex())]",
             "copy": { "name": "postgresqlNicCopy", "count": "[variables('commonSettings').instanceCount.postgresql]" },
@@ -449,6 +456,133 @@
                         "[concat(variables('commonSettings').baseUrl, 'scripts/start-pg.sh')]"
                     ],
                     "commandToExecute": "[concat('./start-pg.sh', ' ', parameters('tenantName'), ' ', concat(variables('commonSettings').vnet.subnet.zookeeper.addressRangePrefix, '.10'), ' ', variables('commonSettings').instanceCount.zookeeper, ' ', concat(variables('commonSettings').vnet.subnet.postgresql.addressRangePrefix, '.10'), ' ', variables('commonSettings').instanceCount.postgresql, ' ', copyIndex(), ' ', parameters('postgresqlUsername'), ' ', concat('\"', parameters('postgresqlPassword'), '\"'), ' ', variables('commonSettings').softwareversions.patroni, ' ', variables('commonSettings').softwareversions.postgres)]"
+                }
+            }
+        },
+
+
+        {
+            "type": "Microsoft.Compute/availabilitySets",
+            "name": "[concat('availabilitySet-zookeeper-', variables('commonSettings').tenantName)]",
+            "apiVersion": "2016-04-30-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "platformFaultDomainCount": 3,
+                "platformUpdateDomainCount": 5,
+                "managed": true
+            }
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[concat('networkInterface-', 'zookeeper', '-', copyIndex())]",
+            "copy": { "name": "zookeeperNicCopy", "count": "[variables('commonSettings').instanceCount.zookeeper]" },
+            "apiVersion": "2016-09-01",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', variables('commonSettings').vnet.name)]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "[concat('networkInterface-ipConfiguration-', 'zookeeper', '-', copyIndex())]",
+                        "properties": {
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[concat(variables('commonSettings').vnet.subnet.zookeeper.addressRangePrefix, '.', copyIndex(10))]",
+                            "subnet": { "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('commonSettings').vnet.name), '/subnets/', variables('commonSettings').vnet.subnet.zookeeper.name)]" }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "type": "Microsoft.Compute/disks",
+            "name": "[concat('osDisk-', 'zookeeper', '-', copyIndex())]",
+            "copy": { "name": "zookeeperOsDiskCopy", "count": "[variables('commonSettings').instanceCount.zookeeper]" },
+            "apiVersion": "2016-04-30-preview",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "osType": "Linux",
+                "accountType": "Premium_LRS",
+                "diskSizeGB": 128,
+                "creationData": {
+                    "createOption": "FromImage",
+                    "imageReference": {
+                        "id": "[concat('/Subscriptions/', subscription().subscriptionId, '/Providers/Microsoft.Compute/Locations/',resourceGroup().location, '/Publishers/', variables('commonSettings').vm.zookeeper.publisher, '/ArtifactTypes/VMImage/Offers/', variables('commonSettings').vm.zookeeper.offer, '/Skus/', variables('commonSettings').vm.zookeeper.sku, '/Versions/', variables('commonSettings').vm.zookeeper.version)]"
+                    }
+                }
+            }
+        },
+
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[concat('virtualMachine-', 'zookeeper', '-', copyIndex())]",
+            "copy": { "name": "zookeeperVmCopy", "count": "[variables('commonSettings').instanceCount.zookeeper]" },
+            "apiVersion": "2016-04-30-preview",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Compute/availabilitySets/', concat('availabilitySet-zookeeper-', variables('commonSettings').tenantName))]",
+                "[concat('Microsoft.Network/networkInterfaces/', concat('networkInterface-', 'zookeeper', '-', copyIndex()))]",
+                "[concat('Microsoft.Compute/disks/', concat('osDisk-', 'zookeeper', '-', copyIndex()))]"
+            ],
+            "properties": {
+                "hardwareProfile": { "vmSize": "[parameters('zookeeperInstanceSize')]" },
+                "availabilitySet": { 
+                    "id": "[resourceId('Microsoft.Compute/availabilitySets', concat('availabilitySet-zookeeper-', variables('commonSettings').tenantName))]" 
+                },
+                "osProfile": {
+                    "computerName": "[concat('zk', copyIndex())]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "linuxConfiguration": { 
+                        "disablePasswordAuthentication": true,
+                        "ssh": {
+                            "publicKeys": [ 
+                                {
+                                    "path": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
+                                    "keyData": "[parameters('adminSecureShellKey')]"
+                                }
+                            ]
+                        }
+                    }
+                },
+                "storageProfile": {
+                    "imageReference": 
+                    {
+                        "publisher": "[variables('commonSettings').vm.zookeeper.publisher]",
+                        "offer": "[variables('commonSettings').vm.zookeeper.offer]",
+                        "sku": "[variables('commonSettings').vm.zookeeper.sku]",
+                        "version": "[variables('commonSettings').vm.zookeeper.version]"
+                    },
+                    "osDisk": {
+                        "name": "[concat('osDisk-', 'zookeeper', '-', copyIndex())]",
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": { 
+                    "networkInterfaces": [ 
+                        { 
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat('networkInterface-', 'zookeeper', '-', copyIndex()))]" 
+                        } 
+                    ] 
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat('virtualMachine-', 'zookeeper', '-', copyIndex(), '/extension')]",
+            "apiVersion": "2015-05-01-preview",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [ "[concat('Microsoft.Compute/virtualMachines/', concat('virtualMachine-', 'zookeeper', '-', copyIndex()))]" ],
+            "copy": { "name": "zookeeperVmExtensionCopy", "count": "[variables('commonSettings').instanceCount.zookeeper]" },
+            "properties": {
+                "publisher": "Microsoft.OSTCExtensions",
+                "type": "CustomScriptForLinux",
+                "typeHandlerVersion": "1.2",
+                "settings": {
+                    "fileUris": [
+                        "[concat(variables('commonSettings').baseUrl, 'scripts/start-zk.sh')]"
+                    ],
+                    "commandToExecute": "[concat('./start-zk.sh', ' ', copyIndex(), ' ', variables('zookeeperInstanceCount'), ' ', concat(variables('commonSettings').vnet.subnet.zookeeper.addressRangePrefix, '.10'), ' ', variables('commonSettings').softwareversions.zookeeper, ' ', variables('commonSettings').softwareversions.java4zookeeper1, ' ', variables('commonSettings').softwareversions.java4zookeeper2)]"
                 }
             }
         }
