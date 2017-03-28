@@ -128,6 +128,15 @@
                 "backendAddressPools": [ { "name": "postgresqlBackendAddressPool" } ],
                 "probes": [
                     {
+                        "name": "sshProbe",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "port": 22,
+                            "intervalInSeconds": 5,
+                            "numberOfProbes": 2
+                        }
+                    },
+                    {
                         "name": "postgresqlProbe",
                         "properties": {
                             "protocol": "Tcp",
@@ -138,6 +147,19 @@
                     }
                 ],
                 "loadBalancingRules": [
+                    {
+                        "name": "loadBalancingRule-ssh",
+                        "properties": {
+                            "protocol": "Tcp",
+                            "frontendPort": 22,
+                            "backendPort": 22,
+                            "enableFloatingIP": false,
+                            "idleTimeoutInMinutes": 30,
+                            "frontendIPConfiguration": { "id": "[concat(resourceId('Microsoft.Network/loadBalancers', 'loadbalancer-postgres'), '/frontendIPConfigurations/', 'postgresqlFrontendIPConfiguration')]" },
+                            "backendAddressPool": { "id": "[concat(resourceId('Microsoft.Network/loadBalancers', 'loadbalancer-postgres'), '/backendAddressPools/', 'postgresqlBackendAddressPool')]" },
+                            "probe": { "id": "[concat(resourceId('Microsoft.Network/loadBalancers', 'loadbalancer-postgres'), '/probes/', 'sshProbe')]" }
+                        }
+                    },
                     {
                         "name": "loadBalancingRule-postgresql",
                         "properties": {
@@ -165,7 +187,7 @@
                         "name": "http-in",
                         "properties": {
                             "priority": 100,
-                            "description": "Allow TCP/80 Inbound (Internet->Firewall)",
+                            "description": "Allow TCP/80 Inbound (Internet->PostgreSQL Server)",
                             "access": "Allow",
                             "direction": "Inbound",
                             "protocol": "Tcp",
@@ -173,6 +195,20 @@
                             "sourcePortRange": "*",
                             "destinationAddressPrefix": "[variables('commonSettings').vnet.subnet.postgresql.address]",
                             "destinationPortRange": "80"
+                        }
+                    },
+                    {
+                        "name": "ssh-in",
+                        "properties": {
+                            "priority": 101,
+                            "description": "Allow TCP/22 Inbound (Internet->PostgreSQL Server)",
+                            "access": "Allow",
+                            "direction": "Inbound",
+                            "protocol": "Tcp",
+                            "sourceAddressPrefix": "Internet",
+                            "sourcePortRange": "*",
+                            "destinationAddressPrefix": "[variables('commonSettings').vnet.subnet.postgresql.address]",
+                            "destinationPortRange": "22"
                         }
                     }
                 ]
@@ -408,11 +444,11 @@
                 "typeHandlerVersion": "1.2",
                 "settings": {
                     "fileUris": [
-                        "[concat(variables('baseUrl'), 'scripts/setup-raid.sh')]",
-                        "[concat(variables('baseUrl'), 'scripts/start-zk.sh')]",
-                        "[concat(variables('baseUrl'), 'scripts/start-pg.sh')]"
+                        "[concat(variables('commonSettings').baseUrl, 'scripts/setup-raid.sh')]",
+                        "[concat(variables('commonSettings').baseUrl, 'scripts/start-zk.sh')]",
+                        "[concat(variables('commonSettings').baseUrl, 'scripts/start-pg.sh')]"
                     ],
-                    "commandToExecute": "[concat('./start-pg.sh', ' ', parameters('clusterName'), ' ', concat(variables('commonSettings').vnet.subnet.zookeeper.addressRangePrefix, '.10'), ' ', variables('commonSettings').instanceCount.zookeeper, ' ', concat(variables('commonSettings').vnet.subnet.postgresql.addressRangePrefix, '.10'), ' ', variables('commonSettings').instanceCount.postgresql, ' ', copyIndex(), ' ', parameters('postgresqlUsername'), ' ', concat('\"', parameters('postgresqlPassword'), '\"'), ' ', variables('commonSettings').softwareversions.patroni, ' ', variables('commonSettings').softwareversions.postgres)]"
+                    "commandToExecute": "[concat('./start-pg.sh', ' ', parameters('tenantName'), ' ', concat(variables('commonSettings').vnet.subnet.zookeeper.addressRangePrefix, '.10'), ' ', variables('commonSettings').instanceCount.zookeeper, ' ', concat(variables('commonSettings').vnet.subnet.postgresql.addressRangePrefix, '.10'), ' ', variables('commonSettings').instanceCount.postgresql, ' ', copyIndex(), ' ', parameters('postgresqlUsername'), ' ', concat('\"', parameters('postgresqlPassword'), '\"'), ' ', variables('commonSettings').softwareversions.patroni, ' ', variables('commonSettings').softwareversions.postgres)]"
                 }
             }
         }
