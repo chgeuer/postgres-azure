@@ -103,10 +103,25 @@ cat > /srv/salt/webserver.sls <<-EOF
 	    - pkgs:
 	      - mdadm
 	      - xfsprogs
-	      - libpq-dev
-	      - python-dev
-	      - haproxy
 	      - supervisor
+	      - curl 
+	      - jq
+	      - haproxy
+	      - libpq-dev
+	      - python
+	      - python-dev
+	      - python-psycopg2
+	      - python-yaml
+	      - python-requests
+	      - python-six
+	      - python-dateutil
+	      - python-urllib3
+	      - python-dnspython
+	      - python-pip
+	      - python-setuptools
+	      - python-kazoo
+	      - python-prettytable
+	      - python-wheel
 	  pip.installed:
 	    - require:
 	      - pkg: python-pip
@@ -120,8 +135,8 @@ cat > /srv/salt/webserver.sls <<-EOF
 	      - boto
 	      - psycopg2
 	      - kazoo
-	      - python-etcd
-	      - python-consul
+	      - python-etcd == 0.4.3
+	      - python-consul == 0.7.0
 	      - click
 	      - tzlocal
 	      - python-dateutil
