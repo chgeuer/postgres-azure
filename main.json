@@ -88,8 +88,21 @@
             "softwareversions": {
                 "zookeeper": "3.4.9",
                 "java4zookeeper1": "7u75", "java4zookeeper2": "b13",
-                "patroni": "6eb2e2114453545256ac7cbfec55bda285ffb955",
-                "postgres": "9.5"
+                "_testedNiko": {
+                    "name": "tested by Niko",
+                    "patroni": "6eb2e2114453545256ac7cbfec55bda285ffb955",
+                    "postgres": "9.5"
+                },
+                "patroni_1_1": {
+                    "name": "patroni v1.1",
+                    "patroni": "05951f9b5bbaaf7cd771025f3d8e8f23897d7357",
+                    "postgres": "9.5"
+                },
+                "patroni_1_2_4": {
+                    "name": "patroni v1.2.4",
+                    "patroni": "720d08d1b4bc906fc47ec66ac6d645c75951a1bf",
+                    "postgres": "9.6"
+                }
             },
             "instanceCount": { 
                 "postgresql": 2,
@@ -469,12 +482,10 @@
                         "[concat(variables('commonSettings').baseUrl, 'scripts/start-zk.sh')]",
                         "[concat(variables('commonSettings').baseUrl, 'scripts/start-pg.sh')]"
                     ],
-                    "commandToExecute": "[concat('./start-pg.sh', ' ', parameters('tenantName'), ' ', concat(variables('commonSettings').vnet.subnet.zookeeper.addressRangePrefix, '.10'), ' ', variables('commonSettings').instanceCount.zookeeper, ' ', concat(variables('commonSettings').vnet.subnet.postgresql.addressRangePrefix, '.10'), ' ', variables('commonSettings').instanceCount.postgresql, ' ', copyIndex(), ' ', parameters('postgresqlUsername'), ' ', concat('\"', parameters('postgresqlPassword'), '\"'), ' ', variables('commonSettings').softwareversions.patroni, ' ', variables('commonSettings').softwareversions.postgres)]"
+                    "commandToExecute": "[concat('./start-pg.sh', ' ', parameters('tenantName'), ' ', concat(variables('commonSettings').vnet.subnet.zookeeper.addressRangePrefix, '.10'), ' ', variables('commonSettings').instanceCount.zookeeper, ' ', concat(variables('commonSettings').vnet.subnet.postgresql.addressRangePrefix, '.10'), ' ', variables('commonSettings').instanceCount.postgresql, ' ', copyIndex(), ' ', parameters('postgresqlUsername'), ' ', concat('\"', parameters('postgresqlPassword'), '\"'), ' ', variables('commonSettings').softwareversions._testedNiko.patroni, ' ', variables('commonSettings').softwareversions._testedNiko.postgres)]"
                 }
             }
         },
-
-
         {
             "type": "Microsoft.Compute/availabilitySets",
             "name": "[concat('availabilitySet-zookeeper-', variables('commonSettings').tenantName)]",
